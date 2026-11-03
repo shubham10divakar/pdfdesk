@@ -117,7 +117,7 @@ function renderSide(){
   const f = S.ui.view === "library" ? S.ui.filter : null;
   const hasEx = S.papers.some(p => p.sample);
   $("#side").innerHTML = `
-    <div class="brand"><b>ResearchDesk</b><span>local</span></div>
+    <div class="brand"><b>PDFDesk</b><span>local</span></div>
     <button class="btn primary" data-act="add">+ Add PDFs</button>
     <input class="search" id="q" type="search" placeholder="Search title, author, tag" value="${esc(S.ui.q)}" aria-label="Search papers">
     <nav class="nav">

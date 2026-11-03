@@ -4,7 +4,7 @@
 
 ```
 index.html ─┬─ styles.css      tokens + layout
-            ├─ pdf.js (CDN)    rendering + text layer
+            ├─ pdf.js (vendor) rendering + text layer
             └─ app.js
                  ├─ S (state)  ──save()──▶ localStorage "researchdesk.v1"
                  ├─ idb        ──────────▶ IndexedDB "researchdesk"/files (PDF blobs)

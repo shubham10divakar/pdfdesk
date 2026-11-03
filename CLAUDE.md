@@ -1,4 +1,6 @@
-# Working context for ResearchDesk
+# Working context for PDFDesk
+
+(Formerly ResearchDesk. Product, PyPI package and command are `pdfdesk`; browser storage keys keep the old name, see decisions.md D-007.)
 
 Read this first, then `docs/architecture.md` and `docs/roadmap.md`.
 
@@ -10,7 +12,8 @@ A local-first research paper workspace: library + PDF reader + notes + reading-s
 - State is one object `S = {papers, ui}` persisted to localStorage via `save()` / `saveSoon()`. PDF blobs go to IndexedDB via the `idb` helper.
 - Rendering is string templates + `innerHTML`. Events use one delegated `click` listener keyed on `data-act`.
 - The reader keeps runtime state in `R` (pdf handle, scale, current page, live session). `R` is null outside the reader.
-- PDF.js 3.11.174 UMD from cdnjs. The worker script is loaded as a normal `<script>`, which sets `globalThis.pdfjsWorker` so PDF.js runs on the main thread. Keep this unless you vendor the worker and serve it same-origin.
+- PDF.js 3.11.174 UMD and the fonts are vendored in `prototype/vendor/` (no CDN, works offline). The worker script is loaded as a normal `<script>`, which sets `globalThis.pdfjsWorker` so PDF.js runs on the main thread.
+- `pdfdesk/` is the Python package: `cli.py` serves the app with the stdlib on 127.0.0.1:5173. The wheel bundles `prototype/` as `pdfdesk/static/` at build time (hatchling `force-include` in `pyproject.toml`); there is no second copy in the repo.
 
 - `reference/` holds the original idea notes, the design skill used, and the single-file build. Read `reference/skills/artifact-design/SKILL.md` before changing the UI.
 
@@ -24,10 +27,14 @@ A local-first research paper workspace: library + PDF reader + notes + reading-s
 ## How to run / check
 - `npm run dev` → http://localhost:5173
 - `npm run check` → syntax check of `app.js`
+- `python -m pdfdesk` → same app via the Python server, from a checkout
+- `python -m build` → wheel + sdist in `dist/`; bump `__version__` in `pdfdesk/__init__.py`
 
 ## Next steps
 See `docs/roadmap.md`. Phase 1 items are small and safe to do inside the prototype. Phase 2 is the move to Tauri + React + SQLite; don't start it without agreeing the data model in `docs/data-model.md`.
 
 ## Do not
 - Add a build step or npm dependencies to `prototype/` (it should stay openable from a static server).
+- Add Python dependencies to `pdfdesk` 0.x; the stdlib is enough.
+- Change the port default or the storage keys casually: browser data is tied to the origin `localhost:5173` and to those key names.
 - Store highlights only as rectangles: when adding anchoring, keep text + context too (see decisions.md D-004).

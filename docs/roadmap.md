@@ -6,14 +6,24 @@ Browser app in `prototype/`. Library, lifecycle, PDF reader, highlights, notes w
 ## Phase 1: make the prototype usable day to day
 Small changes, no build step.
 
-- [ ] **Export / import** all data as one JSON file (plus PDFs as a zip) so nothing is lost when moving to desktop
+- [ ] **Export / import** all data as one JSON file (plus PDFs as a zip). **Do this next:** it must ship in a 0.x release before 1.x, or 0.x users lose their library when they upgrade. It also rescues data stranded on another port or browser
 - [ ] **arXiv / DOI import**: paste an id, fill title, authors, year, venue (arXiv API, Crossref)
 - [ ] **Full-text search** across notes and highlights (simple in-memory index)
 - [ ] **Highlight re-anchoring**: store prefix/suffix text and re-find highlights when a PDF is replaced
 - [ ] **Click a highlight on the page** to open its comment
 - [ ] **Session edit/delete** for mistaken sessions
 - [ ] **Outline sidebar** from the PDF's table of contents (`pdf.getOutline()`)
-- [ ] Vendor PDF.js locally so the app works offline
+- [x] Vendor PDF.js and fonts locally so the app works offline (D-009)
+
+## Distribution: pip (`pdfdesk`)
+See decisions.md D-008. One package name and one command across both stacks.
+
+- [x] **0.1.0**: wheel bundles `prototype/` + stdlib server; `pdfdesk` opens it at http://localhost:5173
+- [ ] Publish 0.x to PyPI (needs a licence choice, a PyPI account and an API token)
+- [ ] 0.x release with export/import (see Phase 1) before any 1.x
+- [ ] **1.x**: platform wheels carrying the Tauri binary (Windows x64, macOS x64 + arm64, Linux x64), built in CI; `pdfdesk` launches the app. Consider pytauri if the backend should be Python
+- [ ] 1.x first run: offer to import a 0.x export file
+- [ ] Optional native installers (`.msi`, `.dmg`) alongside pip
 
 ## Phase 2: desktop app (Tauri + React + SQLite)
 - [ ] Scaffold `app/` with Tauri 2 + Vite + React + TS

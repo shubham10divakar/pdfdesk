@@ -7,3 +7,8 @@ Thumbs.db
 .env
 # personal test PDFs
 samples/*.pdf
+
+# Python packaging
+__pycache__/
+*.egg-info/
+.venv/

@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pdfdesk"
+dynamic = ["version"]
+description = "Prototype: a local-first workspace for reading research papers, with a PDF reader, highlights, notes and reading-session history."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+keywords = ["pdf", "research", "papers", "reader", "notes", "local-first"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+]
+
+[project.scripts]
+pdfdesk = "pdfdesk.cli:main"
+
+[tool.hatch.version]
+path = "pdfdesk/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pdfdesk"]
+
+# The browser app stays in prototype/ (no build step there); the wheel carries a copy as pdfdesk/static/.
+[tool.hatch.build.targets.wheel.force-include]
+"prototype" = "pdfdesk/static"
+
+[tool.hatch.build.targets.sdist]
+include = ["pdfdesk", "prototype", "README.md", "pyproject.toml"]
