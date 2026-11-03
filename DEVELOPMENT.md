@@ -27,6 +27,7 @@ Requires Node 18+ (or use `python -m pdfdesk` from the repo root).
 
 ```bash
 npm run dev          # PDFDesk at http://localhost:5173, library in ~/PDFDesk-test (C:\Users\Subham\PDFDesk-test)
+npm run dev -- --port 5174   # same, on another port (e.g. while the installed pdfdesk has 5173)
 npm run dev:static   # prototype/ on a plain static server: browser storage, no library folder
 npm run check        # syntax-check prototype/app.js
 npm test             # server + store unit tests
@@ -60,6 +61,8 @@ npm run check                            # syntax of app.js
 chrome --headless=new --remote-debugging-port=9337 --user-data-dir=<temp dir> about:blank
 node scripts/e2e/disk-storage.mjs 9337 <abs path>/sample-paper.pdf <abs empty work dir>   # from the repo root
 ```
+
+`scripts/e2e/collapse.mjs` checks the collapsible sidebar and notes panel: `[` and `]`, pages re-fitting wider without losing your place, the floating button outside the reader, and the choice surviving a reload. Same arguments as zoom.mjs.
 
 `scripts/e2e/zoom.mjs` checks that a page zoomed to 250% can be scrolled to both edges and that a page at 100% stays centred: `node scripts/e2e/zoom.mjs <chromeDebugPort> <appUrl> <abs path>/sample-paper.pdf <outDir>` (static server is fine).
 
