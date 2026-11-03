@@ -418,3 +418,6 @@ kbd{font-family:var(--f-mono);font-size:11.5px;padding:1px 6px;border:1px solid 
 .src-link:hover{text-decoration:underline}
 #idMsg:empty{display:none}
 #idMsg{color:var(--s-revisit)}
+
+/* ---------- re-anchoring ---------- */
+.hl-item .acts .lost{font-size:11px;color:var(--s-paused);border:1px solid color-mix(in srgb, var(--s-paused) 45%, transparent);border-radius:4px;padding:0 5px}

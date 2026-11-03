@@ -747,7 +747,7 @@ function renderPanel(){
       ${hs.length ? hs.map((h,i) => `${i?'<div class="hl-sep"></div>':""}<div class="hl-item" data-hl="${h.id}" style="--c:var(--hl-${h.color})"><span class="stripe"></span><div class="body">
           <button class="txt" data-act="goto" data-v="${h.page}" data-h="${h.id}" title="Show on page ${h.page}">${esc(h.text)}</button>
           <textarea class="hl-cm" data-cm="${h.id}" rows="1" placeholder="Add a comment">${esc(h.comment)}</textarea>
-          <div class="acts"><button class="pref" data-act="goto" data-v="${h.page}" data-h="${h.id}">p. ${h.page}</button><span>${HLC[h.color]}</span><button data-act="hl-del" data-v="${h.id}" style="margin-left:auto">Remove</button></div>
+          <div class="acts"><button class="pref" data-act="goto" data-v="${h.page}" data-h="${h.id}">p. ${h.page}</button><span>${HLC[h.color]}</span>${h.lost ? `<span class="lost" title="This text wasn't found in the current PDF. The highlight is kept with its text and comment.">Not found in this PDF</span>` : ""}<button data-act="hl-del" data-v="${h.id}" style="margin-left:auto">Remove</button></div>
         </div></div>`).join("") : `<div class="empty">Select text in the paper and pick a colour to highlight it.</div>`}`;
   } else if (tab === "contents"){
     body = `<nav class="toc" aria-label="Contents of this paper">${R.outline.map((o, i) => `<button class="toc-i" data-act="toc" data-v="${i}" style="--d:${o.depth}"${o.dest == null ? " disabled" : ""}><span class="toc-t">${esc(o.title)}</span>${o.page ? `<span class="toc-p num">${o.page}</span>` : ""}</button>`).join("")}</nav>`;
@@ -835,7 +835,13 @@ function onSelEnd(){
     const pr = pg.getBoundingClientRect();
     const rects = mergeRects([...range.getClientRects()].filter(r => r.width > 1 && r.height > 1 && r.bottom > pr.top && r.top < pr.bottom)
       .map(r => ({x:(r.left-pr.left)/pr.width, y:(r.top-pr.top)/pr.height, w:r.width/pr.width, h:r.height/pr.height})));
-    R.pending = {page:+pg.dataset.n, text:txt.slice(0, 1500), rects};
+    let prefix = "", suffix = "";   // text just before and after, so a repeated phrase can be told apart later
+    const tl = pg.querySelector(".textLayer");
+    if (tl) try {
+      const a = document.createRange(); a.setStart(tl, 0); a.setEnd(range.startContainer, range.startOffset); prefix = a.toString().replace(/\s+/g, " ").slice(-48);
+      const b = document.createRange(); b.setStart(range.endContainer, range.endOffset); b.setEnd(tl, tl.childNodes.length); suffix = b.toString().replace(/\s+/g, " ").slice(0, 48);
+    } catch(e){}
+    R.pending = {page:+pg.dataset.n, text:txt.slice(0, 1500), rects, prefix, suffix};
     const b = range.getBoundingClientRect(), pop = $("#selpop");
     pop.hidden = false;
     const top = b.top > 60 ? b.top - 46 : b.bottom + 8;
@@ -846,7 +852,7 @@ function onSelEnd(){
 function hidePop(){ const p = $("#selpop"); if (p) p.hidden = true; if (R) R.pending = null; }
 function addHighlight(color, withNote){
   if (!R || !R.pending) return; const p = getP(R.id);
-  const h = {id:uid(), page:R.pending.page, color, text:R.pending.text, rects:R.pending.rects, comment:"", at:Date.now()};
+  const h = {id:uid(), page:R.pending.page, color, text:R.pending.text, rects:R.pending.rects, prefix:R.pending.prefix || "", suffix:R.pending.suffix || "", comment:"", at:Date.now()};
   p.highlights.push(h); drawHighlights(h.page);
   try { getSelection().removeAllRanges(); } catch(e){}
   hidePop(); save();
@@ -888,9 +894,10 @@ async function attachFile(file){
   const m = await readPdfMeta(file);
   await idb.put(p.id, file);
   p.hasFile = true; p.sample = false; if (m.pages) p.pages = m.pages;
-  p.highlights.forEach(h => h.rects = null); // positions from the example page don't apply to the real PDF
   if (p.maxPage > p.pages) p.maxPage = p.pages; if (p.lastPage > p.pages) p.lastPage = 1;
-  save(); const id = p.id; toast("PDF attached."); openReader(id);
+  save(); const id = p.id; toast("PDF attached.");
+  await openReader(id);
+  await reanchor(id);   // the old positions belong to the old file: find each highlight again by its text
 }
 
 /* ---------------- toast ---------------- */
@@ -1160,6 +1167,84 @@ async function jumpTo(n, top){
   if (typeof top === "number"){ const pg = await R.pdf.getPage(n); y = Math.max(0, pg.getViewport({scale:R.scale}).convertToViewportPoint(0, top)[1]); }
   box.scrollTo({top: el.offsetTop + y - 24, behavior:"smooth"});
   setCurrent(n);
+}
+
+/* ---------------- re-anchoring highlights ---------------- */
+// When a paper's PDF is replaced (say, a new arXiv version), find each highlight again by its text.
+// Matching ignores whitespace and case; the saved prefix/suffix context picks between repeats of the same
+// phrase, and the old page breaks ties. Highlights that can't be found keep their text and are marked lost.
+const squash = t => String(t || "").replace(/\s+/g, "").toLowerCase();
+async function pageIndex(pdf, n){
+  const page = await pdf.getPage(n), vp = page.getViewport({scale:1}), tc = await page.getTextContent();
+  let s = ""; const map = [];   // s: the page's text without whitespace; map[i] = [item, char in item]
+  tc.items.forEach((it, k) => { const str = it.str || ""; for (let j = 0; j < str.length; j++) if (!/\s/.test(str[j])){ s += str[j].toLowerCase(); map.push([k, j]); } });
+  return {s, map, items:tc.items, vp};
+}
+const sameEnd = (a, b) => { let k = 0; while (k < a.length && k < b.length && a[a.length - 1 - k] === b[b.length - 1 - k]) k++; return k; };
+const sameStart = (a, b) => { let k = 0; while (k < a.length && k < b.length && a[k] === b[k]) k++; return k; };
+async function findHighlight(h, get, numPages){
+  const needle = squash(h.text); if (needle.length < 3) return null;
+  const pre = squash(h.prefix).slice(-24), suf = squash(h.suffix).slice(0, 24), perfect = pre.length + suf.length;
+  const order = Array.from({length:numPages}, (_, i) => i + 1).sort((a, b) => Math.abs(a - h.page) - Math.abs(b - h.page));
+  const score = (P, n, i, j) => (pre ? sameEnd(P.s.slice(Math.max(0, i - pre.length), i), pre) : 0) + (suf ? sameStart(P.s.slice(j, j + suf.length), suf) : 0) - Math.abs(n - h.page) * 0.5;
+  let best = null;
+  for (const n of order){                                   // exact text
+    const P = await get(n);
+    for (let i = P.s.indexOf(needle); i >= 0; i = P.s.indexOf(needle, i + 1)){
+      const sc = score(P, n, i, i + needle.length); if (!best || sc > best.sc) best = {sc, n, i, j:i + needle.length};
+    }
+    if (best && (perfect ? best.sc >= perfect - 1 : true)) break;
+  }
+  // Reworded a little: match the start and the end, with shorter anchors in case the edit sits near either end.
+  // The stretch between them must be about as long as the original (within 30%), so unrelated text can't match.
+  for (const size of [24, 16, 10]){
+    if (best || needle.length < size * 2 + 8) break;
+    const head = needle.slice(0, size), tail = needle.slice(-size);
+    for (const n of order){
+      const P = await get(n);
+      for (let i = P.s.indexOf(head); i >= 0; i = P.s.indexOf(head, i + 1)){
+        const t = P.s.indexOf(tail, i + head.length), span = t + tail.length - i;
+        if (t >= 0 && Math.abs(span - needle.length) <= needle.length * 0.3){ const sc = score(P, n, i, t + tail.length) - 2; if (!best || sc > best.sc) best = {sc, n, i, j:t + tail.length}; }
+      }
+      if (best){ best.fuzzy = true; break; }
+    }
+  }
+  if (!best) return null;
+  const P = await get(best.n);
+  return {page:best.n, rects:rectsFor(P, best.i, best.j), text:best.fuzzy ? textFor(P, best.i, best.j) : null};
+}
+// The PDF's own wording for characters a..b (used when a reworded highlight is re-found).
+function textFor(P, a, b){
+  const parts = []; let k0 = -1;
+  for (let i = a; i < b; i++){ const [k, j] = P.map[i]; if (k !== k0){ parts.push([k, j, j]); k0 = k; } else parts[parts.length - 1][2] = j; }
+  return parts.map(([k, j0, j1]) => P.items[k].str.slice(j0, j1 + 1)).join(" ").replace(/\s+/g, " ").trim();
+}
+// Page-relative rectangles for characters a..b of a page index, one per text item, merged per line.
+function rectsFor(P, a, b){
+  const byItem = new Map();
+  for (let i = a; i < b; i++){ const [k, j] = P.map[i]; const r = byItem.get(k); if (r) r[1] = j; else byItem.set(k, [j, j]); }
+  const out = [];
+  for (const [k, [j0, j1]] of byItem){
+    const it = P.items[k], len = Math.max(1, it.str.length), tx = PDFJS.Util.transform(P.vp.transform, it.transform);
+    const fh = Math.hypot(tx[2], tx[3]), w = it.width * P.vp.scale, x0 = tx[4] + w * (j0 / len), x1 = tx[4] + w * ((j1 + 1) / len);
+    out.push({x:x0 / P.vp.width, y:(tx[5] - fh * 0.82) / P.vp.height, w:(x1 - x0) / P.vp.width, h:fh * 1.08 / P.vp.height});
+  }
+  return mergeRects(out);
+}
+async function reanchor(pid){
+  if (!R || R.id !== pid || !R.pdf) return;
+  const p = getP(pid); if (!p || !p.highlights.length) return;
+  toast(`Finding your ${p.highlights.length === 1 ? "highlight" : `${p.highlights.length} highlights`} in the new PDF…`);
+  const pdf = R.pdf, cache = new Map(), get = async n => { if (!cache.has(n)) cache.set(n, pageIndex(pdf, n)); return cache.get(n); };
+  let found = 0;
+  for (const h of p.highlights){
+    let hit = null; try { hit = await findHighlight(h, get, pdf.numPages); } catch(e){}
+    if (!R || R.pdf !== pdf) return;
+    if (hit){ h.page = hit.page; h.rects = hit.rects; if (hit.text) h.text = hit.text; delete h.lost; found++; } else { h.rects = null; h.lost = true; }
+  }
+  save(); document.querySelectorAll("#pages .page").forEach(el => drawHighlights(+el.dataset.n)); renderPanel();
+  const all = p.highlights.length, lost = all - found;
+  toast(lost ? `Found ${found} of ${all} highlights in the new PDF. ${lost === 1 ? "One couldn't be found; it's" : `${lost} couldn't be found; they're`} kept in the Highlights tab.` : all === 1 ? "Your highlight was found in the new PDF." : `All ${all} highlights found in the new PDF.`);
 }
 
 /* ---------------- add by arXiv id or DOI ---------------- */
