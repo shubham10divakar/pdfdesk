@@ -16,7 +16,7 @@ const fmtMin = m => m >= 60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m}m`;
 const rel = t => { if(!t) return "Never"; const d = Math.round((day0()-day0(t))/DAY); return d===0?"Today":d===1?"Yesterday":d<7?`${d} days ago`:fmtDate(t); };
 const isoDay = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
 
-const VERSION = "0.2.0"; // keep in step with pdfdesk/__init__.py
+const VERSION = "0.2.1"; // keep in step with pdfdesk/__init__.py
 const HEART = '<svg class="heart" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14s-5.5-3.4-5.5-7.3C2.5 4.6 4 3 5.9 3 7 3 7.6 3.6 8 4.3 8.4 3.6 9 3 10.1 3 12 3 13.5 4.6 13.5 6.7 13.5 10.6 8 14 8 14z"/></svg>';
 
 const STATUSES = [["inbox","Inbox"],["planned","Planned"],["reading","Reading"],["paused","Paused"],["completed","Completed"],["revisit","Revisit"]];

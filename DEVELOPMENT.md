@@ -43,7 +43,7 @@ Build the Python package with `python -m build` (outputs to `dist/`).
 1. Bump `__version__` in `pdfdesk/__init__.py` and `VERSION` near the top of `prototype/app.js` (shown on the About page).
 2. `python -m build` and test the wheel in a clean venv: `pip install dist/pdfdesk-<v>-py3-none-any.whl && pdfdesk`.
 3. `twine check dist/*` (renders the README the way PyPI will), then `twine upload dist/*`.
-4. Tag the commit: `git tag v<v> && git push --tags`.
+4. Add the version to `CHANGELOG.md`, then tag the commit: `git tag -a v<v> -m "PDFDesk <v>" && git push origin v<v>`.
 
 The download badges in README.md (pepy.tech, shields.io) show "not found" until the first PyPI upload, then fill in within about a day.
 
@@ -129,6 +129,7 @@ docs/
   decisions.md    decision log (ADR-style)
 README.md         product page (also the PyPI description)
 DEVELOPMENT.md    this file
+CHANGELOG.md      every version's changes
 LICENSE           MIT
 CLAUDE.md         working context for AI coding assistants
 reference/        how v0.1 was made: original idea notes, design skill, single-file build

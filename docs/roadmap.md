@@ -21,7 +21,7 @@ See decisions.md D-008. One package name and one command across both stacks.
 
 - [x] **0.1.0**: wheel bundles `prototype/` + stdlib server; `pdfdesk` opens it at http://localhost:5173
 - [ ] Publish 0.x to PyPI (MIT licence chosen; needs a PyPI account and an API token)
-- [ ] **0.2.0**: export/import + library on disk (built; publish to PyPI)
+- [ ] **0.2.1**: export/import + library on disk + open the folder from the app (tagged; publish to PyPI)
 - [ ] **1.x**: platform wheels carrying the Tauri binary (Windows x64, macOS x64 + arm64, Linux x64), built in CI; `pdfdesk` launches the app. Consider pytauri if the backend should be Python
 - [ ] 1.x first run: offer to import a 0.x export file
 - [ ] Optional native installers (`.msi`, `.dmg`) alongside pip
