@@ -22,9 +22,11 @@
   <button class="btn" data-act="hl-note">Add note</button>
 </div>
 <div class="toast" id="toast" hidden></div>
-<div class="drop" id="drop" hidden><div>Drop PDFs to add them to your Inbox</div></div>
+<div class="drop" id="drop" hidden><div>Drop PDFs to add them, or a PDFDesk export to import it</div></div>
 <input type="file" id="fileIn" accept="application/pdf,.pdf" multiple hidden>
 <input type="file" id="attachIn" accept="application/pdf,.pdf" hidden>
+<input type="file" id="impIn" accept=".zip,.json,application/zip,application/json" hidden>
+<div class="modal" id="modal" hidden></div>
 
 <!-- PDF.js 3.11.174 (UMD), vendored so the app works offline. Loading the worker as a plain script makes
      PDF.js run its parser on the main thread, which avoids worker setup across file:// and custom origins. -->

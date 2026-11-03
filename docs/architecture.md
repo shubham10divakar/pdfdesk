@@ -11,6 +11,7 @@ index.html ─┬─ styles.css      tokens + layout
                  ├─ views      renderSide / homeHTML / libHTML / renderPanel
                  ├─ reader     R runtime: openReader → loadDoc → buildPages → renderPage
                  ├─ sessions   1s ticker, idle detection, endSession()
+                 ├─ export/import  zipBlob / zipIndex / zipRead, exportLibrary, readImport, applyImport
                  └─ events     delegated click on [data-act], input, keydown, selection
 ```
 
@@ -53,7 +54,37 @@ What follows from this:
 - **Per browser and per address.** Chrome and Edge each have their own library; `localhost:5173` and `localhost:8080` are separate libraries.
 - **Clearing site data deletes the library,** PDF copies included. The originals are safe; highlights, notes and history are not.
 - **Each PDF is stored twice:** the original plus the browser's copy.
-- **No way out yet.** Export/import fixes this: see [export-import.md](export-import.md). In 1.x, PDFs live in a normal library folder and everything else in a SQLite file (section 2).
+- **Export to get it out.** Export/import (below) writes the whole library to one file you own. In 1.x, PDFs live in a normal library folder and everything else in a SQLite file (section 2).
+
+### Export and import
+Full spec and the reasons behind it: [export-import.md](export-import.md). Code: the `export / import` section of `app.js`.
+
+```
+Export library ─▶ exportLibrary(true)
+                   papers (no examples) ─┬─▶ library.json        S.papers as JSON + format header
+                   idb.get(id) per PDF ──┼─▶ pdfs/<id>.pdf      the stored copy, byte for byte
+                   paperMarkdown(p) ─────┼─▶ notes/<slug>.md    notes + highlights, for people
+                                         └─▶ README.txt
+                   zipBlob(files) ─▶ <a download> pdfdesk-export-YYYY-MM-DD.zip
+Export without PDFs ─▶ exportLibrary(false) ─▶ pdfdesk-backup-YYYY-MM-DD.json (library.json only)
+
+Import library / drop a .zip or .json
+  ─▶ readImport(file)    zipIndex reads the central directory; zipRead extracts one entry
+                         (stored, or deflate via DecompressionStream). Validates format + version.
+  ─▶ showImportDialog    summary: papers new / already here, PDFs, highlights, sessions
+  ─▶ applyImport(replace)
+        replace: idb.del every paper, S.papers = []
+        per paper: PDF ─▶ idb.putStrict (stops and reports if the browser refuses)
+                   new id ─▶ added;  known id ─▶ mergeInto(cur, inc)
+  ─▶ save(), renderAll(), toast with counts
+```
+
+- **Zip without dependencies.** `zipBlob` writes a "stored" zip (PDFs are already compressed) with CRC-32 and UTF-8 names; about 80 lines with the reader. No ZIP64, so one export is limited to 4 GB and 65,535 files; past that the user is told to export without PDFs.
+- **Merge never loses data.** Highlights and sessions are unioned by `id`, tags and bookmarks unioned, different notes appended under `--- Imported <date> ---` (once, even on repeated imports), and the reading position comes from whichever copy was opened last. Only "Replace my library" deletes, after a second confirmation that offers to export first.
+- **Paper ids are kept** across export and import; that is what makes re-importing and merging safe. `cleanPaper` gives every imported paper all the fields the app reads, so a hand-edited or older file can't break rendering.
+- **`idb.putStrict`** is the one storage call that reports failure. The normal `idb.put` swallows errors (fine for single PDFs), but import must know when the browser refuses a file so it can stop and say how far it got.
+- **Memory:** export reads every PDF into memory once to compute its CRC. Fine for hundreds of papers; streaming is a 1.x concern.
+- Tested end to end by `scripts/e2e/export-import.mjs` (headless Chrome, three isolated browser profiles).
 
 ### Known limitations
 - All state in one localStorage blob (~5 MB limit); fine for hundreds of papers, not thousands.

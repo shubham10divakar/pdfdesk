@@ -118,6 +118,13 @@ The overview turns your sessions into a picture of your reading:
 - **Revision queue**: highlights from finished papers come back each day, so ideas don't fade.
 - **Reading log**: every session, newest first.
 
+## Back up and move your library
+
+- **Export library** saves everything in one `.zip`: your PDFs, highlights, comments, notes, sessions and bookmarks, plus a readable Markdown file of notes and highlights for every paper.
+- **Export without PDFs** makes a small backup file for frequent saves.
+- **Import library** shows what's in the file before changing anything. *Add to my library* merges and never deletes or overwrites what you wrote; *Replace my library* asks first and offers to export your current library.
+- Drop an export file on the window to import it. Use it to move to another browser or computer.
+
 ## Easy on the eyes, day and night
 
 <img src="https://raw.githubusercontent.com/shubham10divakar/pdfdesk/main/docs/assets/reader-dark.png" alt="PDFDesk reader in dark mode" width="100%">
@@ -159,13 +166,12 @@ pdfdesk --version
 
 Upgrade any time with `pip install -U pdfdesk`.
 
-> **Good to know:** adding a PDF saves a copy inside PDFDesk; your original file stays where it is, untouched. In this version your library is stored in the browser you open PDFDesk in, for the address `localhost:5173`. Keep using the same browser and the default port and your library will be there every time. Uninstalling the package doesn't delete it.
+> **Good to know:** adding a PDF saves a copy inside PDFDesk; your original file stays where it is, untouched. In this version your library is stored in the browser you open PDFDesk in, for the address `localhost:5173`. Keep using the same browser and the default port and your library will be there every time. Uninstalling the package doesn't delete it. Use **Export library** to keep a backup.
 
 ## What's coming
 
 PDFDesk is at **0.1**, an early release. Next up:
 
-- **Export and import** your whole library as one file: PDFs, highlights, notes and history, plus readable Markdown copies of your notes. Use it for backups or to move to another browser or computer.
 - **arXiv and DOI import**: paste an id and the title, authors, year and venue fill themselves in.
 - **Full-text search** across notes and highlights.
 - **PDF outline** in the sidebar, from the paper's table of contents.

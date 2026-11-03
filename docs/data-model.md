@@ -27,7 +27,8 @@
     "target": {"page": 13, "date": "2026-11-04"}, // or null
     "addedAt": 0, "lastOpened": 0, "lastPage": 12, "maxPage": 12
   }],
-  "ui": {"view":"home","filter":"all","tab":"notes","nmode":"preview","hlFilter":"all","zoom":1,"q":""}
+  "ui": {"view":"home","filter":"all","tab":"notes","nmode":"preview","hlFilter":"all","zoom":1,"q":"",
+         "lastExport": 1762190000000}   // set by Export library; shown on the About page
 }
 ```
 

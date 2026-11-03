@@ -10,7 +10,7 @@ Read this first, then `DEVELOPMENT.md`, `docs/architecture.md` (incl. "Where you
 A local-first research paper workspace: library + PDF reader + notes + reading-session history. The owner is a software engineer and ML researcher who reads many papers and wants a record of his reading over time, not just a file manager.
 
 ## Current state
-- `prototype/` is a no-build vanilla JS app. `app.js` is one IIFE (~700 lines) organised in sections marked `/* ---------- name ---------- */`: storage, example library (`seed()`), sidebar, overview, library, reader, sessions, panel, markdown (`md()`), selection→highlight, import, events.
+- `prototype/` is a no-build vanilla JS app. `app.js` is one IIFE (~1000 lines) organised in sections marked `/* ---------- name ---------- */`: storage, example library (`seed()`), sidebar, overview, library, reader, sessions, panel, markdown (`md()`), selection→highlight, import, export / import, events.
 - State is one object `S = {papers, ui}` persisted to localStorage via `save()` / `saveSoon()`. PDF blobs go to IndexedDB via the `idb` helper.
 - Rendering is string templates + `innerHTML`. Events use one delegated `click` listener keyed on `data-act`.
 - The reader keeps runtime state in `R` (pdf handle, scale, current page, live session). `R` is null outside the reader.

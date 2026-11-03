@@ -6,7 +6,7 @@ Browser app in `prototype/`. Library, lifecycle, PDF reader, highlights, notes w
 ## Phase 1: make the prototype usable day to day
 Small changes, no build step.
 
-- [ ] **Export / import** the whole library as one `.zip` (library.json + PDFs + readable Markdown notes); import merges without deleting. Spec: [export-import.md](export-import.md). **Do this next:** it must ship in a 0.x release before 1.x, or 0.x users lose their library when they upgrade. It also rescues data stranded on another port or browser
+- [x] **Export / import** the whole library as one `.zip` (library.json + PDFs + readable Markdown notes); import merges without deleting. Spec: [export-import.md](export-import.md). **Do this next:** it must ship in a 0.x release before 1.x, or 0.x users lose their library when they upgrade. It also rescues data stranded on another port or browser
 - [ ] **arXiv / DOI import**: paste an id, fill title, authors, year, venue (arXiv API, Crossref)
 - [ ] **Full-text search** across notes and highlights (simple in-memory index)
 - [ ] **Highlight re-anchoring**: store prefix/suffix text and re-find highlights when a PDF is replaced

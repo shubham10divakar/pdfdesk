@@ -44,6 +44,7 @@ const idb = (() => {
   const tx = async (mode, fn) => { const db = await open(); return new Promise((res, rej) => { const t = db.transaction("files", mode); const req = fn(t.objectStore("files")); t.oncomplete = () => res(req && req.result); t.onerror = () => rej(t.error); }); };
   return {
     put: (k,v) => { memFiles.set(k,v); return tx("readwrite", s => s.put(v,k)).catch(()=>{}); },
+    putStrict: (k,v) => tx("readwrite", s => s.put(v,k)),
     get: async k => { if (memFiles.has(k)) return memFiles.get(k); try { return await tx("readonly", s => s.get(k)); } catch(e){ return null; } },
     del: k => { memFiles.delete(k); return tx("readwrite", s => s.delete(k)).catch(()=>{}); }
   };
@@ -144,6 +145,7 @@ function renderSide(){
     <div class="side-foot">
       ${hasEx ? `<span>Showing example papers so you can try things out.</span><button data-act="clear-examples">Remove examples</button>` : ""}
       <span>PDFs, notes and history stay in this browser.</span>
+      <div class="side-io"><button data-act="exp">Export library</button><button data-act="imp">Import library</button></div>
     </div>`;
 }
 
@@ -303,6 +305,11 @@ const FEATURES = [
     "Continue reading with one-click resume",
     "A 17-week reading calendar with your streak and total hours",
     "Up next by target date, a daily revision queue of past highlights, and the full reading log"]],
+  ["Export and import", [
+    "Export the whole library as one .zip: PDFs, highlights, notes, sessions, plus readable Markdown notes",
+    "A small backup without PDFs for frequent saves",
+    "Import merges into your library and never deletes what you wrote, or replaces it after asking",
+    "Drop an export file on the window to import it"]],
   ["Private and offline", [
     "PDFs, notes and history stay on your computer; no account, no cloud, no tracking",
     "The PDF engine and fonts are built in, so it works without internet",
@@ -334,6 +341,16 @@ function aboutHTML(){
       <div class="fb-acts">
         <a class="btn primary" href="${REPO}/issues/new" target="_blank" rel="noopener">Report a bug or idea</a>
         <a class="btn" href="${REPO}" target="_blank" rel="noopener">Source on GitHub</a>
+      </div>
+    </section>
+
+    <section class="data" aria-labelledby="dt-h">
+      <div><h2 id="dt-h">Your data</h2>
+      <p>Your library lives in this browser at this address. Adding a PDF saves a copy here; your original file is never touched. Export to back it up or move it to another browser or computer.${S.ui.lastExport ? ` Last export: ${esc(fmtDay(S.ui.lastExport))}.` : " You haven't exported yet."}</p></div>
+      <div class="fb-acts">
+        <button class="btn primary" data-act="exp">Export library</button>
+        <button class="btn" data-act="exp-lite">Export without PDFs</button>
+        <button class="btn" data-act="imp">Import library</button>
       </div>
     </section>
 
@@ -684,7 +701,9 @@ async function readPdfMeta(file){
 }
 async function importFiles(files){
   const pdfs = [...files].filter(f => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
-  if (!pdfs.length) return toast("Only PDF files can be added.");
+  const exp = [...files].find(f => !pdfs.includes(f) && isExportFile(f));
+  if (exp) startImport(exp);
+  if (!pdfs.length){ if (!exp) toast("Only PDF files, or a PDFDesk export (.zip or .json), can be added."); return; }
   toast(`Adding ${pdfs.length} ${pdfs.length===1?"PDF":"PDFs"}…`);
   for (const f of pdfs){
     const m = await readPdfMeta(f);
@@ -711,6 +730,201 @@ async function attachFile(file){
 let toastT;
 function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
 
+/* ---------------- export / import ---------------- */
+// Spec: docs/export-import.md. One .zip (library.json + pdfs/ + notes/ + README.txt), or one .json without PDFs.
+// Zip is written "stored" (PDFs are already compressed) and read with stored or deflate entries, no dependencies.
+const EXPORT_FORMAT = "pdfdesk-export", EXPORT_VERSION = 1;
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8){ let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+const enc = new TextEncoder();
+
+function zipBlob(files){ // files: [{name, data:Uint8Array}]
+  const parts = [], central = []; let offset = 0;
+  const d = new Date(), time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  if (files.length > 65535) throw new Error("Too many files for one export.");
+  for (const f of files){
+    const name = enc.encode(f.name), crc = crc32(f.data), size = f.data.length;
+    if (offset + size > 0xFFFFFFFF) throw new Error("The library is larger than 4 GB. Export without PDFs instead.");
+    const lh = new DataView(new ArrayBuffer(30));
+    [[0,0x04034b50,4],[4,20,2],[6,0x0800,2],[8,0,2],[10,time,2],[12,date,2],[14,crc,4],[18,size,4],[22,size,4],[26,name.length,2],[28,0,2]].forEach(([o,v,n]) => n === 4 ? lh.setUint32(o, v, true) : lh.setUint16(o, v, true));
+    const ch = new DataView(new ArrayBuffer(46));
+    [[0,0x02014b50,4],[4,20,2],[6,20,2],[8,0x0800,2],[10,0,2],[12,time,2],[14,date,2],[16,crc,4],[20,size,4],[24,size,4],[28,name.length,2],[30,0,2],[32,0,2],[34,0,2],[36,0,2],[38,0,4],[42,offset,4]].forEach(([o,v,n]) => n === 4 ? ch.setUint32(o, v, true) : ch.setUint16(o, v, true));
+    parts.push(lh, name, f.data); central.push(ch, name);
+    offset += 30 + name.length + size;
+  }
+  const cdSize = central.reduce((a, x) => a + x.byteLength, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  [[0,0x06054b50,4],[4,0,2],[6,0,2],[8,files.length,2],[10,files.length,2],[12,cdSize,4],[16,offset,4],[20,0,2]].forEach(([o,v,n]) => n === 4 ? end.setUint32(o, v, true) : end.setUint16(o, v, true));
+  return new Blob([...parts, ...central, end], {type:"application/zip"});
+}
+
+async function zipIndex(file){ // -> Map(name -> {method, csize, lo}) read from the central directory
+  const tailLen = Math.min(file.size, 65557), tail = new DataView(await file.slice(file.size - tailLen).arrayBuffer());
+  let e = -1; for (let i = tailLen - 22; i >= 0; i--) if (tail.getUint32(i, true) === 0x06054b50){ e = i; break; }
+  if (e < 0) throw new Error("This isn't a zip file.");
+  const count = tail.getUint16(e + 10, true), cdSize = tail.getUint32(e + 12, true), cdOff = tail.getUint32(e + 16, true);
+  if (cdOff === 0xFFFFFFFF || count === 0xFFFF) throw new Error("This zip is too large to read here.");
+  const cd = new DataView(await file.slice(cdOff, cdOff + cdSize).arrayBuffer()), dec = new TextDecoder(), out = new Map();
+  for (let p = 0, i = 0; i < count; i++){
+    if (cd.getUint32(p, true) !== 0x02014b50) throw new Error("The zip file is damaged.");
+    const method = cd.getUint16(p + 10, true), csize = cd.getUint32(p + 20, true), nl = cd.getUint16(p + 28, true), xl = cd.getUint16(p + 30, true), cl = cd.getUint16(p + 32, true), lo = cd.getUint32(p + 42, true);
+    out.set(dec.decode(new Uint8Array(cd.buffer, p + 46, nl)), {method, csize, lo});
+    p += 46 + nl + xl + cl;
+  }
+  return out;
+}
+async function zipRead(file, ent){ // -> Blob of the entry's contents
+  const lh = new DataView(await file.slice(ent.lo, ent.lo + 30).arrayBuffer());
+  if (lh.getUint32(0, true) !== 0x04034b50) throw new Error("The zip file is damaged.");
+  const start = ent.lo + 30 + lh.getUint16(26, true) + lh.getUint16(28, true), raw = file.slice(start, start + ent.csize);
+  if (ent.method === 0) return raw;
+  if (ent.method === 8 && typeof DecompressionStream === "function") return new Response(raw.stream().pipeThrough(new DecompressionStream("deflate-raw"))).blob();
+  throw new Error("This zip uses a compression method PDFDesk can't read.");
+}
+
+const slug = s => String(s || "paper").toLowerCase().normalize("NFKD").replace(/[^\w\s-]/g, "").trim().replace(/[\s_-]+/g, "-").slice(0, 60) || "paper";
+function paperMarkdown(p){
+  const meta = [p.authors, [p.venue, p.year].filter(Boolean).join(" ")].filter(Boolean).join(" · ");
+  const hls = [...p.highlights].sort((a, b) => a.page - b.page).map(h => `- p. ${h.page} · ${HLC[h.color] || h.color}: "${h.text}"${h.comment ? `\n  ${h.comment}` : ""}`);
+  return `# ${p.title}\n\n${meta ? meta + "\n\n" : ""}Status: ${SLABEL[p.status] || p.status}${p.tags.length ? ` · Tags: ${p.tags.join(", ")}` : ""}\n\n## Notes\n\n${p.notes.trim() || "_No notes yet._"}\n\n## Highlights\n\n${hls.join("\n") || "_No highlights yet._"}\n`;
+}
+const exportReadme = n => `PDFDesk library export\n\nlibrary.json  every paper with its status, tags, highlights, notes, sessions and bookmarks\npdfs/         the stored copy of each PDF, named by paper id\nnotes/        one Markdown file per paper, readable in any text editor\n\nTo restore: open PDFDesk, go to About (or the sidebar footer), choose Import library and pick this file.\nPapers: ${n}. Made with PDFDesk ${VERSION}.\n`;
+
+function download(blob, name){
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+
+async function exportLibrary(withPdfs, then){
+  const papers = S.papers.filter(p => !p.sample);
+  if (!papers.length){ toast("Your library is empty. Add PDFs first."); return false; }
+  closeReader();
+  toast(withPdfs ? "Preparing export…" : "Preparing backup…");
+  const stamp = isoDay(Date.now()), lib = {format:EXPORT_FORMAT, formatVersion:EXPORT_VERSION, appVersion:VERSION, exportedAt:new Date().toISOString(), includesPdfs:withPdfs, papers};
+  const count = {pdfs:0, hl:papers.reduce((a, p) => a + p.highlights.length, 0), ses:papers.reduce((a, p) => a + p.sessions.length, 0)};
+  try {
+    if (!withPdfs){ download(new Blob([JSON.stringify(lib, null, 1)], {type:"application/json"}), `pdfdesk-backup-${stamp}.json`); }
+    else {
+      const files = [{name:"library.json", data:enc.encode(JSON.stringify(lib, null, 1))}], used = new Set();
+      for (const p of papers){
+        if (p.hasFile){ const b = await idb.get(p.id); if (b){ files.push({name:`pdfs/${p.id}.pdf`, data:new Uint8Array(await b.arrayBuffer())}); count.pdfs++; } }
+        let s = slug(p.title), k = 2; while (used.has(s)) s = `${slug(p.title)}-${k++}`; used.add(s);
+        files.push({name:`notes/${s}.md`, data:enc.encode(paperMarkdown(p))});
+      }
+      files.push({name:"README.txt", data:enc.encode(exportReadme(papers.length))});
+      download(zipBlob(files), `pdfdesk-export-${stamp}.zip`);
+    }
+  } catch(err){ toast(`Export failed: ${err.message}`); return false; }
+  S.ui.lastExport = Date.now(); save();
+  const n = (x, w) => `${x} ${w}${x === 1 ? "" : "s"}`;
+  toast(`Exported ${n(papers.length, "paper")}${withPdfs ? `, ${n(count.pdfs, "PDF")}` : ""}, ${n(count.hl, "highlight")}, ${n(count.ses, "session")}`);
+  if (then) await then();
+  return true;
+}
+
+// Make an imported paper safe to use: every field the app reads exists with the right type.
+function cleanPaper(p){
+  const arr = v => Array.isArray(v) ? v : [];
+  const st = STATUSES.some(([k]) => k === p.status) ? p.status : "inbox";
+  return {id:String(p.id), sample:false, hasFile:!!p.hasFile, title:String(p.title || "Untitled"), authors:String(p.authors || ""), year:p.year ?? "", venue:String(p.venue || ""), pages:+p.pages || 0,
+    status:st, tags:arr(p.tags).map(String), notes:String(p.notes || ""), highlights:arr(p.highlights).filter(h => h && h.id), sessions:arr(p.sessions).filter(s => s && s.id),
+    bookmarks:arr(p.bookmarks).map(Number).filter(Number.isFinite), target:p.target && p.target.page ? p.target : null, summary:p.summary ? String(p.summary) : undefined,
+    addedAt:+p.addedAt || Date.now(), lastOpened:+p.lastOpened || 0, lastPage:+p.lastPage || 1, maxPage:+p.maxPage || 0};
+}
+
+let IMP = null; // pending import: {file, zip, papers, pdfIds:Set}
+async function readImport(file){
+  let lib, zip = null;
+  if (/\.json$/i.test(file.name) || file.type === "application/json"){
+    try { lib = JSON.parse(await file.text()); } catch(e){ throw new Error("This file isn't valid JSON."); }
+  } else {
+    zip = await zipIndex(file);
+    const ent = zip.get("library.json"); if (!ent) throw new Error("This zip has no library.json, so it isn't a PDFDesk export.");
+    try { lib = JSON.parse(await (await zipRead(file, ent)).text()); } catch(e){ throw new Error("library.json in this zip is damaged."); }
+  }
+  if (!lib || lib.format !== EXPORT_FORMAT || !Array.isArray(lib.papers)) throw new Error("This file isn't a PDFDesk export.");
+  if (+lib.formatVersion > EXPORT_VERSION) throw new Error("This file was made by a newer PDFDesk. Upgrade with pip install -U pdfdesk, then import again.");
+  const papers = lib.papers.filter(p => p && p.id && !p.sample).map(cleanPaper);
+  const pdfIds = new Set(zip ? papers.filter(p => zip.has(`pdfs/${p.id}.pdf`)).map(p => p.id) : []);
+  return {file, zip, papers, pdfIds, exportedAt:lib.exportedAt};
+}
+
+async function startImport(file){
+  try { IMP = await readImport(file); } catch(err){ IMP = null; toast(err.message); return; }
+  if (!IMP.papers.length){ IMP = null; toast("That export has no papers in it."); return; }
+  showImportDialog("choose");
+}
+
+function showImportDialog(step){
+  const m = $("#modal"); if (!IMP) return closeModal();
+  const ids = new Set(S.papers.map(p => p.id)), have = IMP.papers.filter(p => ids.has(p.id)).length, mine = S.papers.filter(p => !p.sample).length;
+  const hl = IMP.papers.reduce((a, p) => a + p.highlights.length, 0), ses = IMP.papers.reduce((a, p) => a + p.sessions.length, 0);
+  const n = (x, w) => `<b class="num">${x}</b> ${w}${x === 1 ? "" : "s"}`;
+  const when = IMP.exportedAt ? ` from ${fmtDay(Date.parse(IMP.exportedAt))}` : "";
+  let body;
+  if (step === "choose") body = `
+    <h2 id="mdl-h">Import library</h2>
+    <p class="mdl-file">${esc(IMP.file.name)}${esc(when)}</p>
+    <ul class="mdl-sum">
+      <li>${n(IMP.papers.length, "paper")}: ${IMP.papers.length - have} new, ${have} already in your library</li>
+      <li>${n(IMP.pdfIds.size, "PDF")}${IMP.zip ? "" : " (this backup has no PDFs)"}</li>
+      <li>${n(hl, "highlight")} and ${n(ses, "session")}</li>
+    </ul>
+    <div class="mdl-opt"><button class="btn primary" data-act="imp-add">Add to my library</button><span>Adds new papers and merges the rest. Nothing you wrote is deleted or overwritten.</span></div>
+    <div class="mdl-opt"><button class="btn" data-act="imp-replace">Replace my library</button><span>Removes your current library first, then imports this file.</span></div>
+    <div class="mdl-foot"><button class="btn ghost" data-act="modal-close">Cancel</button></div>`;
+  else body = `
+    <h2 id="mdl-h">Replace your library?</h2>
+    <p>${mine ? `This removes ${n(mine, "paper")} from this browser, with ${mine === 1 ? "its PDF" : "their PDFs"}, highlights, notes and history` : "This removes the example papers"}${mine && S.papers.some(p => p.sample) ? ", plus the example papers" : ""}. Then it imports ${n(IMP.papers.length, "paper")} from the file.</p>
+    ${mine ? `<p>Export your current library first so you can undo this.</p>` : ""}
+    <div class="mdl-foot">
+      <button class="btn ghost" data-act="modal-close">Cancel</button>
+      <button class="btn" data-act="imp-replace-go">Replace without exporting</button>
+      <button class="btn primary" data-act="imp-replace-export"${mine ? "" : " disabled"}>Export, then replace</button>
+    </div>`;
+  m.innerHTML = `<div class="mdl" role="dialog" aria-modal="true" aria-labelledby="mdl-h">${body}</div>`;
+  m.hidden = false; m.querySelector(".btn.primary:not([disabled])")?.focus();
+}
+function closeModal(){ const m = $("#modal"); m.hidden = true; m.innerHTML = ""; IMP = null; }
+
+function mergeInto(cur, inc, stamp){
+  const byId = (a, b) => { const seen = new Set(a.map(x => x.id)); return a.concat(b.filter(x => !seen.has(x.id))); };
+  cur.highlights = byId(cur.highlights, inc.highlights);
+  cur.sessions = byId(cur.sessions, inc.sessions).sort((a, b) => a.date - b.date);
+  cur.bookmarks = [...new Set([...cur.bookmarks, ...inc.bookmarks])].sort((a, b) => a - b);
+  cur.tags = [...new Set([...cur.tags, ...inc.tags])];
+  const a = cur.notes.trim(), b = inc.notes.trim();
+  if (b && a !== b && !a.includes(b)) cur.notes = a ? `${a}\n\n--- Imported ${stamp} ---\n\n${b}` : b;
+  if (inc.lastOpened > cur.lastOpened){ cur.status = inc.status; cur.lastPage = inc.lastPage; cur.target = inc.target; cur.lastOpened = inc.lastOpened; }
+  cur.maxPage = Math.max(cur.maxPage || 0, inc.maxPage || 0);
+  if (!cur.pages && inc.pages) cur.pages = inc.pages;
+}
+
+async function applyImport(replace){
+  const imp = IMP; if (!imp) return;
+  $("#modal").hidden = true; closeReader();
+  toast("Importing…");
+  if (replace){ for (const p of S.papers) await idb.del(p.id); S.papers = []; }
+  const stamp = isoDay(Date.now()); let added = 0, updated = 0, pdfs = 0, failed = null;
+  for (const inc of imp.papers){
+    const cur = S.papers.find(p => p.id === inc.id);
+    const needPdf = imp.pdfIds.has(inc.id) && !(cur && cur.hasFile);
+    if (needPdf){
+      try { const raw = await zipRead(imp.file, imp.zip.get(`pdfs/${inc.id}.pdf`)); await idb.putStrict(inc.id, new Blob([raw], {type:"application/pdf"})); pdfs++; }
+      catch(err){ failed = inc; break; }
+    }
+    if (cur){ mergeInto(cur, inc, stamp); if (needPdf) cur.hasFile = true; updated++; }
+    else { inc.hasFile = needPdf; S.papers.unshift(inc); added++; }
+  }
+  save(); closeModal();
+  S.ui.view = "library"; S.ui.filter = "all"; renderAll();
+  const n = (x, w) => `${x} ${w}${x === 1 ? "" : "s"}`;
+  if (failed) toast(`Stopped at "${failed.title}": the browser couldn't save its PDF (storage may be full, or this is a private window). ${n(added, "paper")} added. Try a backup without PDFs.`);
+  else toast(`Added ${n(added, "paper")}, updated ${updated}${pdfs ? `, restored ${n(pdfs, "PDF")}` : ""}`);
+}
+
+const isExportFile = f => /\.(zip|json)$/i.test(f.name) || /zip|json/.test(f.type);
+
 /* ---------------- events ---------------- */
 document.addEventListener("click", async e => {
   const t = e.target.closest("[data-act]"); if (!t) return;
@@ -719,6 +933,14 @@ document.addEventListener("click", async e => {
   switch (a){
     case "home": closeReader(); S.ui.view = "home"; save(); renderAll(); break;
     case "about": closeReader(); S.ui.view = "about"; save(); renderAll(); break;
+    case "exp": await exportLibrary(true); if (S.ui.view === "about") renderMain(); break;
+    case "exp-lite": await exportLibrary(false); if (S.ui.view === "about") renderMain(); break;
+    case "imp": $("#impIn").click(); break;
+    case "imp-add": applyImport(false); break;
+    case "imp-replace": showImportDialog("confirm"); break;
+    case "imp-replace-go": applyImport(true); break;
+    case "imp-replace-export": { const ok = await exportLibrary(true); if (ok) applyImport(true); break; }
+    case "modal-close": closeModal(); break;
     case "filter": closeReader(); S.ui.view = "library"; S.ui.filter = v; save(); renderAll(); break;
     case "open": openReader(v); break;
     case "open-hl": { const pp = getP(v), h = pp && pp.highlights.find(x => x.id === t.dataset.h); S.ui.tab = "highlights"; openReader(v, h ? {page:h.page, hl:h.id} : null); break; }
@@ -760,6 +982,7 @@ document.addEventListener("input", e => {
 });
 document.addEventListener("keydown", e => {
   const t = e.target;
+  if (e.key === "Escape" && !$("#modal").hidden){ closeModal(); return; }
   if (t.id === "pgIn" && e.key === "Enter"){ goPage(+t.value); t.blur(); return; }
   if (t.id === "tagIn" && e.key === "Enter" && R){ const v = t.value.trim().toLowerCase().replace(/\s+/g,"-"); const p = getP(R.id); if (v && !p.tags.includes(v)){ p.tags.push(v); save(); renderSide(); renderPanel(); $("#tagIn")?.focus(); } return; }
   if (!R || /INPUT|TEXTAREA|SELECT/.test(t.tagName)) return;
@@ -775,6 +998,8 @@ document.addEventListener("scroll", e => { if (e.target && e.target.id === "page
 let rzT; window.addEventListener("resize", () => { clearTimeout(rzT); rzT = setTimeout(() => { if (R && $("#pages .page")) buildPages(); }, 250); });
 
 $("#fileIn").addEventListener("change", e => { importFiles(e.target.files); e.target.value = ""; });
+$("#impIn").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; if (f) startImport(f); });
+$("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
 $("#attachIn").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; if (f) attachFile(f); });
 let dragN = 0;
 window.addEventListener("dragenter", e => { if ([...(e.dataTransfer?.types||[])].includes("Files")){ dragN++; $("#drop").hidden = false; } });

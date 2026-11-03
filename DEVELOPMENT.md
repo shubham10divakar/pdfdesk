@@ -43,6 +43,17 @@ Build the Python package with `python -m build` (outputs to `dist/`).
 
 The download badges in README.md (pepy.tech, shields.io) show "not found" until the first PyPI upload, then fill in within about a day.
 
+## End-to-end test: export / import
+
+`scripts/e2e/export-import.mjs` drives headless Chrome over the DevTools protocol (Node 22+, no npm packages). It builds a library in one isolated browser profile, exports it, then imports into fresh profiles and checks 18 things: the dialog summary, PDFs rendering after import, no duplicates on re-import, notes merged once, replace, a deflate-compressed zip from another tool, and a bad file being refused.
+
+```bash
+python -m pdfdesk --no-browser --port 5193
+chrome --headless=new --remote-debugging-port=9336 --user-data-dir=<temp dir> about:blank
+# <work> needs: bad.json (any JSON that isn't an export); deflated.zip is optional (re-zip an export with ZIP_DEFLATED)
+node scripts/e2e/export-import.mjs 9336 http://localhost:5193/ <abs path>/sample-paper.pdf <abs work dir>
+```
+
 ## Screenshots
 
 The images in `docs/assets/` come from `scripts/screenshots/`. It drives headless Chrome over the DevTools protocol, needs no npm packages (Node 22+), and uses `sample-paper.html`, an original sample document, so no third-party PDF is shown.
@@ -69,6 +80,7 @@ Alternative without Node: `cd prototype && python -m http.server 5173`.
 | Highlights | Select text → 4 colours with meanings (yellow key idea, green method/result, blue definition, pink question). Optional comment per highlight. Click to jump back |
 | Notes | Per-paper Markdown notes. `p. 12` becomes a link to that page. "Insert highlights" pulls highlights into notes with page refs. "Cite p. N" inserts the current page |
 | Sessions | Active reading time (pauses after 3 min idle or when the tab is hidden), page range covered, optional takeaway note. Auto-logged when you leave a paper |
+| Export / import | One `.zip` with library.json, PDFs and Markdown notes; small `.json` backup without PDFs; import previews, then merges (never deletes) or replaces after a second confirmation; drop an export to import |
 | Overview | Stats, continue-reading list, 17-week reading heatmap with streak, up-next queue with target dates, daily revision queue of past highlights, reading log |
 
 Example papers are seeded on first run so the UI is not empty. Remove them from the sidebar ("Remove examples").
@@ -108,7 +120,7 @@ reference/        how v0.1 was made: original idea notes, design skill, single-f
 
 The keys keep the project's old name (ResearchDesk) so existing libraries aren't lost.
 
-Imported PDFs are copies; the originals are never touched. Clearing site data for `localhost:5173` wipes the library. Details, including where this sits on disk: [docs/architecture.md § Where your data lives](docs/architecture.md#where-your-data-lives). Export/import is next: [docs/export-import.md](docs/export-import.md).
+Imported PDFs are copies; the originals are never touched. Clearing site data for `localhost:5173` wipes the library. Details, including where this sits on disk: [docs/architecture.md § Where your data lives](docs/architecture.md#where-your-data-lives). Export/import gets it out: [docs/export-import.md](docs/export-import.md).
 
 ## License
 

@@ -1,6 +1,6 @@
 # Export and import (spec)
 
-Status: **planned**, next Phase 1 item. Must ship in a 0.x release before 1.x (see decisions.md D-008).
+Status: **built** (in `app.js`, section `export / import`; not yet in a PyPI release). Must ship in a 0.x release before 1.x (see decisions.md D-008). How it's put together: [architecture.md § Export and import](architecture.md#export-and-import).
 
 ## Why
 
@@ -14,15 +14,16 @@ Export and import fix all three with one file.
 
 ## What the user sees
 
-**Export library** (sidebar footer and the About page):
+**Export library** (sidebar footer, and the *Your data* section of the About page):
 
 1. One click. The browser downloads `pdfdesk-export-2026-11-03.zip`.
 2. A toast confirms: "Exported 42 papers, 38 PDFs, 512 highlights, 230 sessions".
-3. A second option, **Export without PDFs**, makes a small file (a few hundred KB) with everything except the PDF copies, for frequent backups.
+3. A second option, **Export without PDFs** (About page), downloads `pdfdesk-backup-2026-11-03.json`: everything except the PDF copies, a few hundred KB, for frequent backups.
+4. The About page shows the date of the last export.
 
 **Import library** (same places):
 
-1. Pick a `.zip` (or the `.json` from an export without PDFs).
+1. Pick a `.zip` (or the `.json` from an export without PDFs), or drop it on the window.
 2. PDFDesk reads it and shows a summary before changing anything:
    "42 papers (39 new, 3 already in your library), 38 PDFs, 512 highlights, 230 sessions."
 3. Choose:
@@ -86,6 +87,7 @@ The rule throughout: **import never deletes or overwrites anything the user wrot
 
 - **Storage full:** the browser may refuse very large libraries. Import stops, reports which papers were added, and suggests importing without PDFs.
 - **Damaged or unrelated file:** refused before anything changes, with a message naming the problem.
+- **Zips from other tools:** stored and deflate entries both import (deflate uses the browser's `DecompressionStream`). ZIP64 files (over 4 GB) are refused.
 - **Library on another port** (e.g. you ran `pdfdesk --port 8080` once): open that address, export there, import on `localhost:5173`.
 
 ## How it will be built
