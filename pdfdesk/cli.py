@@ -259,7 +259,7 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 f"pdfdesk: port {args.port} is already in use. PDFDesk may already be running at http://localhost:{args.port}\n"
                 "Open that address, or start on another port: pdfdesk --port <number>\n"
-                f"Your library is in {store.root} either way.",
+                f"(This command would use the library folder {store.root}; the server already running may use a different one.)",
                 file=sys.stderr,
             )
             return 1
