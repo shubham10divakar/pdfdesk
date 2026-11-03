@@ -538,7 +538,7 @@ async function loadDoc(p){
       const first = await pdf.getPage(1); const vp = first.getViewport({scale:1});
       R.baseW = vp.width; R.baseH = vp.height;
     } catch(e){
-      $("#pages").innerHTML = `<div class="empty" style="background:var(--raised);max-width:460px">The PDF file for this paper isn't in this browser any more (it may have been cleared). Your notes and history are safe. Attach the PDF again from the Details tab.</div>`;
+      $("#pages").innerHTML = `<div class="empty" style="background:var(--raised);max-width:460px">${DISK.on ? `The PDF file for this paper isn't in your library folder (it should be at pdfs/${esc(p.id)}.pdf).` : "The PDF file for this paper isn't in this browser any more (it may have been cleared)."} Your notes and history are safe. Attach the PDF again from the Details tab.</div>`;
       return;
     }
   } else if (p.hasFile && !PDFJS){

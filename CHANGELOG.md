@@ -2,6 +2,11 @@
 
 All notable changes to PDFDesk. Versions follow [semantic versioning](https://semver.org/); dates are release dates.
 
+## Unreleased
+
+- **Fix:** when zoomed in, the left side of a page couldn't be scrolled to. Wide pages now scroll to both edges, and pages that fit stay centred.
+- The "PDF missing" message now names the file in your library folder instead of talking about the browser.
+
 ## 0.2.1 (2026-11-03)
 
 First PyPI release since 0.1.0; it includes everything from 0.1.1 and 0.2.0 below.

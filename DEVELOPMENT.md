@@ -61,6 +61,8 @@ chrome --headless=new --remote-debugging-port=9337 --user-data-dir=<temp dir> ab
 node scripts/e2e/disk-storage.mjs 9337 <abs path>/sample-paper.pdf <abs empty work dir>   # from the repo root
 ```
 
+`scripts/e2e/zoom.mjs` checks that a page zoomed to 250% can be scrolled to both edges and that a page at 100% stays centred: `node scripts/e2e/zoom.mjs <chromeDebugPort> <appUrl> <abs path>/sample-paper.pdf <outDir>` (static server is fine).
+
 ## End-to-end test: export / import
 
 Runs against the static server (browser mode), since each profile needs its own library. `scripts/e2e/export-import.mjs` drives headless Chrome over the DevTools protocol (Node 22+, no npm packages). It builds a library in one isolated browser profile, exports it, then imports into fresh profiles and checks 18 things: the dialog summary, PDFs rendering after import, no duplicates on re-import, notes merged once, replace, a deflate-compressed zip from another tool, and a bad file being refused.

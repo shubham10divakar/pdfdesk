@@ -1,0 +1,37 @@
+// Check that a zoomed page can be scrolled to both edges, and that an unzoomed page stays centred.
+import { writeFileSync } from "node:fs";
+const [port, app, pdf, out] = process.argv.slice(2);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+let fails = 0; const check = (ok, what) => { console.log(ok ? "PASS" : "FAIL", what); if (!ok) fails++; };
+const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+const ws = new WebSocket(list.find(t => t.type === "page").webSocketDebuggerUrl);
+await new Promise(r => ws.addEventListener("open", r, { once: true }));
+let id = 0; const pend = new Map();
+ws.addEventListener("message", e => { const m = JSON.parse(e.data); if (pend.has(m.id)) { pend.get(m.id)(m); pend.delete(m.id); } });
+const cdp = (method, params = {}) => new Promise((res, rej) => { const i = ++id; pend.set(i, m => m.error ? rej(new Error(m.error.message)) : res(m.result)); ws.send(JSON.stringify({ id: i, method, params })); });
+const js = async e => { const r = await cdp("Runtime.evaluate", { expression: e, awaitPromise: true, returnByValue: true }); if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || e); return r.result.value; };
+const shot = async n => writeFileSync(`${out}/${n}.png`, Buffer.from((await cdp("Page.captureScreenshot", { format: "png" })).data, "base64"));
+await cdp("Page.enable"); await cdp("Runtime.enable"); await cdp("DOM.enable");
+await cdp("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+await cdp("Page.navigate", { url: app }); await wait(1800);
+const { root } = await cdp("DOM.getDocument"); const { nodeId } = await cdp("DOM.querySelector", { nodeId: root.nodeId, selector: "#fileIn" });
+await cdp("DOM.setFileInputFiles", { nodeId, files: [pdf] }); await wait(2500);
+await js(`[...document.querySelectorAll('[data-act="open"]')].find(e => /Reading Logs/.test(e.textContent)).click()`); await wait(3000);
+const geo = () => js(`(() => { const c = document.querySelector('#pages'), p = c.querySelector('.page'), cr = c.getBoundingClientRect(), pr = p.getBoundingClientRect();
+  return {cl: cr.left, cr: cr.left + c.clientWidth, pl: pr.left, pr: pr.right, sw: c.scrollWidth, cw: c.clientWidth, sl: c.scrollLeft}; })()`);
+let g = await geo();
+check(g.sw <= g.cw && Math.abs((g.pl - g.cl) - (g.cr - g.pr)) < 3, `100%: page fits and is centred (gaps ${Math.round(g.pl - g.cl)} / ${Math.round(g.cr - g.pr)})`);
+for (let i = 0; i < 12; i++) { await js(`document.querySelector('[data-act="zoom"][data-v="1"]').click()`); await wait(120); }
+await wait(1500);
+console.log("  zoom:", await js(`document.querySelector('#zoomLbl').textContent`));
+await js(`document.querySelector('#pages').scrollLeft = 0`); await wait(200);
+g = await geo();
+check(g.sw > g.cw, `zoomed: the page is wider than the reader (${g.sw} > ${g.cw})`);
+check(g.pl >= g.cl - 0.5, `zoomed, scrolled fully left: the page's left edge is visible (page ${Math.round(g.pl)} vs reader ${Math.round(g.cl)})`);
+await shot("zoom-left");
+await js(`(() => { const c = document.querySelector('#pages'); c.scrollLeft = c.scrollWidth; })()`); await wait(200);
+g = await geo();
+check(g.pr <= g.cr + 0.5, `zoomed, scrolled fully right: the page's right edge is visible (page ${Math.round(g.pr)} vs reader ${Math.round(g.cr)})`);
+await shot("zoom-right");
+console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED");
+ws.close(); process.exit(fails ? 1 : 0);
