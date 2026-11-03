@@ -240,7 +240,7 @@ function renderSide(){
     </div>
     <button class="btn primary" data-act="add">+ Add PDFs</button>
     <button class="add-id" data-act="add-id">Add by arXiv ID or DOI</button>
-    <input class="search" id="q" type="search" placeholder="Search papers, notes, highlights" value="${esc(S.ui.q)}" aria-label="Search papers">
+    <input class="search" id="q" type="search" placeholder="Search papers and notes" value="${esc(S.ui.q)}" aria-label="Search papers">
     <nav class="nav">
       <button class="nav-i ${S.ui.view==="home"?"on":""}" data-act="home">Overview</button>
       <button class="nav-i ${f==="all"?"on":""}" data-act="filter" data-v="all">All papers <span class="ct">${S.papers.length}</span></button>

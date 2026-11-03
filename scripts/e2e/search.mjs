@@ -22,7 +22,7 @@ await cdp("Page.navigate", { url: app }); await wait(1500);
 await cdp("Page.navigate", { url: "about:blank" }); await wait(300);   // leave first: the app saves on unload
 await cdp("Storage.clearDataForOrigin", { origin: new URL(app).origin, storageTypes: "all" });
 await cdp("Page.navigate", { url: app }); await wait(1800);
-check(await js(`document.querySelector('#q').placeholder`) === "Search papers, notes, highlights", "the search box says it searches notes and highlights");
+check(await js(`document.querySelector('#q').placeholder`) === "Search papers and notes", "the search box says it searches notes too (and fits the sidebar)");
 
 // a note with a page reference and accents, written the normal way
 await js(`[...document.querySelectorAll('[data-act="open"]')].find(e => /Attention Is All You Need/.test(e.textContent)).click()`); await wait(1500);
