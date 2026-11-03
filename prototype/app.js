@@ -416,6 +416,7 @@ const FEATURES = [
     "Zoom, jump to a page, bookmarks",
     "Every paper reopens at the page you left it on",
     "Links in the PDF work: citations, section and figure references jump to the exact spot, web links open in a new tab",
+    "After following a link, Back (or Alt+←) returns to where you were",
     "Attach or replace the PDF for any paper",
     "Hide the sidebar and the notes panel to give wide pages and slides the full width"]],
   ["Highlights", [
@@ -448,7 +449,7 @@ const FEATURES = [
     "The PDF engine and fonts are built in, so it works without internet",
     "Dark mode follows your system setting"]],
 ];
-const KEYS = [[["j", "→"], "Next page"], [["k", "←"], "Previous page"], [["b"], "Bookmark this page"], [["["], "Show or hide the sidebar"], [["]"], "Show or hide notes and highlights"], [["Enter"], "Jump to the page typed in the page box"], [["Esc"], "Close the highlight menu"]];
+const KEYS = [[["j", "→"], "Next page"], [["k", "←"], "Previous page"], [["b"], "Bookmark this page"], [["Alt", "←"], "Back to where you were before a link"], [["["], "Show or hide the sidebar"], [["]"], "Show or hide notes and highlights"], [["Enter"], "Jump to the page typed in the page box"], [["Esc"], "Close the highlight menu"]];
 
 function aboutHTML(){
   const links = AUTHOR.links.filter(l => l.url);
@@ -520,7 +521,7 @@ async function openReader(id, jump){
   if (p.status === "inbox" || p.status === "planned" || p.status === "paused") p.status = "reading";
   p.lastOpened = Date.now();
   S.ui.view = "reader"; S.ui.open = id;
-  R = {id, pdf:null, gen:0, current:p.lastPage||1, numPages:p.pages||1, baseW:612, baseH:792, scale:1, rendered:new Set(), obs:null, pending:null,
+  R = {id, hist:[], pdf:null, gen:0, current:p.lastPage||1, numPages:p.pages||1, baseW:612, baseH:792, scale:1, rendered:new Set(), obs:null, pending:null,
        session:{start:Date.now(), active:0, from:p.lastPage||1, max:p.lastPage||1}};
   renderSide();
   const m = $("#main"); m.classList.add("is-reader");
@@ -530,6 +531,7 @@ async function openReader(id, jump){
         <button class="icon-b tg-side" data-act="side" title="${S.ui.sideOff ? "Show" : "Hide"} the sidebar ( [ )" aria-label="${S.ui.sideOff ? "Show" : "Hide"} the library sidebar" aria-pressed="${!S.ui.sideOff}">${ICON.sideL}</button>
         <button class="icon-b" data-act="home" title="Back to overview" aria-label="Back">${ICON.back}</button>
         <div class="r-title" title="${esc(p.title)}">${esc(p.title)}</div>
+        <button class="btn sm back-link" id="backBtn" data-act="link-back" title="Back to where you were before the link (Alt+←)" hidden></button>
         <div class="r-group"><input class="pg-in" id="pgIn" inputmode="numeric" aria-label="Page number" value="${R.current}"><span class="r-of" id="pgOf">/ ${p.pages||"…"}</span></div>
         <div class="r-group"><button class="icon-b" data-act="zoom" data-v="-1" aria-label="Zoom out">${ICON.minus}</button><span class="r-of" id="zoomLbl" style="min-width:38px;text-align:center">${Math.round(S.ui.zoom*100)}%</span><button class="icon-b" data-act="zoom" data-v="1" aria-label="Zoom in">${ICON.plus}</button></div>
         <button class="icon-b" id="bmBtn" data-act="bookmark" title="Bookmark this page" aria-label="Bookmark this page">${ICON.bm}</button>
@@ -1100,14 +1102,14 @@ async function drawLinks(page, vp, el, gen){
     link.style.cssText = `left:${l / vp.width * 100}%;top:${t / vp.height * 100}%;width:${w / vp.width * 100}%;height:${h / vp.height * 100}%`;
     if (a.dest){
       link.href = "#"; link.title = "Go to the linked place in this paper";
-      link.addEventListener("click", ev => { ev.preventDefault(); followDest(a.dest); });
+      link.addEventListener("click", ev => { ev.preventDefault(); followDest(a.dest, +el.dataset.n); });
     } else { link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer"; link.title = url; }
     layer.appendChild(link);
   }
   if (layer.childElementCount) el.appendChild(layer);
 }
 // A destination is a page plus, usually, a position on it (XYZ left/top, or FitH/FitBH top), in PDF units.
-async function followDest(dest){
+async function followDest(dest, from){
   if (!R || !R.pdf) return;
   try {
     const exp = typeof dest === "string" ? await R.pdf.getDestination(dest) : dest;
@@ -1115,8 +1117,28 @@ async function followDest(dest){
     const n = (typeof exp[0] === "object" ? await R.pdf.getPageIndex(exp[0]) : exp[0]) + 1;
     const kind = exp[1] && exp[1].name;
     const top = kind === "XYZ" ? exp[3] : (kind === "FitH" || kind === "FitBH") ? exp[2] : kind === "FitR" ? exp[5] : null;
+    rememberSpot(from || R.current);
     await jumpTo(n, top);
   } catch(e){ toast("This link points to a place PDFDesk can't find in the file."); }
+}
+// Where you were: the page the link was on, and the scroll position measured from that page (in page
+// heights), so it survives zooming and re-fitting. The label names the link's page, which is what you read.
+function rememberSpot(page){
+  const box = $("#pages"), el = pageEl(page); if (!box || !el) return;
+  R.hist.push({page, frac:(box.scrollTop - el.offsetTop) / Math.max(1, el.offsetHeight)});
+  if (R.hist.length > 50) R.hist.shift();
+  updateBackBtn();
+}
+function goBack(){
+  if (!R || !R.hist.length) return false;
+  const h = R.hist.pop(), box = $("#pages"), el = pageEl(h.page);
+  if (box && el) box.scrollTo({top: el.offsetTop + h.frac * el.offsetHeight, behavior:"smooth"});  // the scroll handler updates the page number
+  updateBackBtn(); return true;
+}
+function updateBackBtn(){
+  const b = $("#backBtn"); if (!b || !R) return;
+  const h = R.hist[R.hist.length - 1];
+  b.hidden = !h; if (h) b.textContent = `← Back to p. ${h.page}`;
 }
 async function jumpTo(n, top){
   const box = $("#pages"), el = pageEl(n); if (!box || !el || !R) return;
@@ -1165,6 +1187,8 @@ document.addEventListener("click", e => {
   const h = hlAt(pg, e.clientX, e.clientY); if (h) openHighlight(h.id);
 });
 let hovPt = null;
+// The mouse's back button goes back through followed links too (and doesn't navigate the browser away).
+document.addEventListener("mouseup", e => { if (e.button === 3 && R && R.hist.length){ e.preventDefault(); goBack(); } });
 document.addEventListener("mousemove", e => {
   if (!R || hovPt) { if (hovPt) hovPt = [e.target, e.clientX, e.clientY]; return; }
   hovPt = [e.target, e.clientX, e.clientY];
@@ -1194,6 +1218,7 @@ document.addEventListener("click", async e => {
     case "modal-close": closeModal(); break;
     case "left-add": addLeftovers(); break;
     case "side": toggleBar("side"); break;
+    case "link-back": goBack(); break;
     case "panel": toggleBar("panel"); break;
     case "open-folder": openFolder(); break;
     case "left-skip": $("#leftbar").hidden = true; try { localStorage.setItem(LEFTKEY, "skipped"); } catch(err){} break;
@@ -1239,6 +1264,7 @@ document.addEventListener("input", e => {
 document.addEventListener("keydown", e => {
   const t = e.target;
   if (e.key === "Escape" && !$("#modal").hidden){ closeModal(); return; }
+  if (e.altKey && e.key === "ArrowLeft" && R && R.hist.length){ e.preventDefault(); goBack(); return; }  // instead of leaving the page
   if (t.id === "pgIn" && e.key === "Enter"){ goPage(+t.value); t.blur(); return; }
   if (t.id === "tagIn" && e.key === "Enter" && R){ const v = t.value.trim().toLowerCase().replace(/\s+/g,"-"); const p = getP(R.id); if (v && !p.tags.includes(v)){ p.tags.push(v); save(); renderSide(); renderPanel(); $("#tagIn")?.focus(); } return; }
   if (!/INPUT|TEXTAREA|SELECT/.test(t.tagName) && !t.isContentEditable && !e.ctrlKey && !e.metaKey && !e.altKey){

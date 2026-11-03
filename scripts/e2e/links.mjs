@@ -1,4 +1,4 @@
-// Links inside PDFs: internal destinations land on the exact spot, web links open in a new tab.
+// Links inside PDFs: internal destinations land on the exact spot, web links open in a new tab, Back returns.
 // Usage: node scripts/e2e/links.mjs <chromeDebugPort> <appUrl> <abs path>/links-paper.pdf [outDir]
 // links-paper.pdf: print scripts/e2e/fixtures/links-paper.html with Chrome (see DEVELOPMENT.md).
 import { writeFileSync } from "node:fs";
@@ -19,7 +19,10 @@ const page = () => js(`+document.querySelector('#pgIn').value`);
 // the n-th link on a page (document order), scrolled into view, clicked with a real mouse
 const clickLink = async (pg, i) => {
   const [x, y] = await js(`(() => { const a = document.querySelectorAll('#pages .page[data-n="${pg}"] .pdf-link')[${i}]; a.scrollIntoView({block:"center"}); const r = a.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()`);
-  await wait(300); await realClick(x, y); await wait(1400);
+  await wait(300);
+  const at = await js(`document.querySelector('#pages').scrollTop`);   // where the reader was when the link was clicked
+  await realClick(x, y); await wait(1400);
+  return at;
 };
 // is the text-layer span containing `s` inside the visible part of the reader?
 const inView = s => js(`(() => { const box = document.querySelector('#pages').getBoundingClientRect(); const sp = [...document.querySelectorAll('.textLayer span')].find(e => e.textContent.includes(${JSON.stringify(s)})); if (!sp) return false; const r = sp.getBoundingClientRect(); return r.top >= box.top && r.bottom <= box.bottom; })()`);
@@ -58,6 +61,30 @@ const linkOverText = await js(`(() => { const a = document.querySelector('#pages
 check(linkOverText, "the link area is on top of the text layer, so a click reaches it");
 const textFree = await js(`(() => { const sp = [...document.querySelectorAll('#pages .page[data-n="1"] .textLayer span')].find(e => e.textContent.includes("Readers follow citations")); const r = sp.getBoundingClientRect(); const el = document.elementFromPoint(r.left + 5, r.top + r.height / 2); return !!el && !el.closest('.pdf-link'); })()`);
 check(textFree, "text outside the links is still reachable for selecting and highlighting");
+
+// ---------- Back ----------
+const back = () => js(`(() => { const b = document.querySelector('#backBtn'); return b.hidden ? null : b.textContent; })()`);
+const altLeft = async () => { for (const type of ["rawKeyDown", "keyUp"]) await cdp("Input.dispatchKeyEvent", { type, key: "ArrowLeft", code: "ArrowLeft", windowsVirtualKeyCode: 37, modifiers: 1 }); await wait(1200); };
+await js(`location.reload()`); await wait(1800);
+await js(`[...document.querySelectorAll('[data-act="open"]')].find(e => /Links in Papers/.test(e.textContent)).click()`); await wait(3000);
+check(await back() === null, "no Back button before following a link");
+// reading the middle of page 2, follow [3], then come back to the same spot
+const before = await clickLink(2, 0);   // [3] -> page 4
+check(before > 500 && await back() === "← Back to p. 2", `after following [3] from page 2, the toolbar offers "${await back()}"`);
+await shot("links-back");
+await js(`document.querySelector('#backBtn').click()`); await wait(1200);
+const after = await js(`document.querySelector('#pages').scrollTop`);
+check(Math.abs(after - before) < 4 && await inView("A citation in the middle") && await back() === null, `Back returns to the same spot on page 2 (scroll ${Math.round(before)} -> ${Math.round(after)}) and the button goes away`);
+await js(`document.querySelector('#pages').scrollTop = 0`); await wait(600);
+// two links in a row, then Alt+Left twice retraces them
+await clickLink(1, 3);   // Figure 1 -> page 3
+await clickLink(3, 0);   // Section 1 -> page 1
+check(await back() === "← Back to p. 3", "after two links, Back points at the previous one (p. 3)");
+await altLeft();
+check(await page() === 3 && await inView("[ figure placeholder ]") && await back() === "← Back to p. 1", "Alt+← goes back to the figure, and the next Back is p. 1");
+await altLeft();
+check(await page() === 1 && await back() === null, "Alt+← again returns to page 1; nothing left to go back to");
+check((await js(`location.href`)).startsWith(app), "Alt+← with nothing left doesn't navigate the browser away (still on PDFDesk)");
 
 console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED");
 ws.close(); process.exit(fails ? 1 : 0);

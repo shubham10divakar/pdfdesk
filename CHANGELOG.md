@@ -4,6 +4,7 @@ All notable changes to PDFDesk. Versions follow [semantic versioning](https://se
 
 ## Unreleased
 
+- **Back after following a link.** Read the reference, then press **Back to p. N** in the toolbar, `Alt+←`, or your mouse's back button to return to exactly where you were. Following several links and going back retraces them in order.
 - **Links in the PDF work.** Citations like `[12]`, "Section 3", "Figure 2" and contents pages jump to the exact spot they point to; web links (DOIs, arXiv, GitHub) open in a new tab, with the address shown on hover. Only safe web addresses (http, https, mailto) are followed.
 - **Click a highlight on the page to find it in the panel.** The pointer turns into a hand over highlights; a click opens the Highlights tab (showing the panel if you'd hidden it), scrolls to that highlight and flashes it, ready for a comment. Dragging to select text works as before.
 - **Page links in notes find the exact highlight.** When a line in your notes quotes something you highlighted (as *Insert highlights* writes it), clicking its `p. N` jumps to that highlight and flashes it, instead of just the top of the page. Those links are underlined in the highlight's colour.
