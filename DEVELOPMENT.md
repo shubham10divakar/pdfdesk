@@ -36,7 +36,7 @@ Build the Python package with `python -m build` (outputs to `dist/`).
 
 ## Release
 
-1. Bump `__version__` in `pdfdesk/__init__.py`.
+1. Bump `__version__` in `pdfdesk/__init__.py` and `VERSION` near the top of `prototype/app.js` (shown on the About page).
 2. `python -m build` and test the wheel in a clean venv: `pip install dist/pdfdesk-<v>-py3-none-any.whl && pdfdesk`.
 3. `twine check dist/*` (renders the README the way PyPI will), then `twine upload dist/*`.
 4. Tag the commit: `git tag v<v> && git push --tags`.

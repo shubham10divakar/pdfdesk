@@ -9,7 +9,7 @@ description = "Prototype: a local-first workspace for reading research papers, w
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-authors = [{ name = "Subham" }]
+authors = [{ name = "Subham Divakar" }]
 requires-python = ">=3.9"
 dependencies = []
 keywords = ["pdf", "research", "papers", "reader", "notes", "local-first"]

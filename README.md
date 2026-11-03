@@ -174,6 +174,16 @@ PDFDesk is at **0.1**, an early release. Next up:
 
 The full plan is in [docs/roadmap.md](https://github.com/shubham10divakar/pdfdesk/blob/main/docs/roadmap.md).
 
+## Feedback and contact
+
+PDFDesk is built by **Subham Divakar**, a software engineer and ML researcher. I built it for myself. People who saw it loved it, so here it is: a small version of a bigger tool I use every day. More features are on the way.
+
+Found a bug, want a feature, or have a question? Open an [issue](https://github.com/shubham10divakar/pdfdesk/issues) or reach out:
+
+[Website](https://subhamdivakar.com/) · [LinkedIn](https://www.linkedin.com/in/subham-divakar-a7420a12a/) · [Google Scholar](https://scholar.google.com/citations?user=44ecZj0AAAAJ&hl=en) · [GitHub](https://github.com/shubham10divakar) · [PyPI](https://pypi.org/user/shubham10divakar/)
+
+The **About** page inside the app has the same links.
+
 ## Contributing
 
 Bug reports and ideas are welcome in [Issues](https://github.com/shubham10divakar/pdfdesk/issues). To work on the code, start with [DEVELOPMENT.md](https://github.com/shubham10divakar/pdfdesk/blob/main/DEVELOPMENT.md).
@@ -184,5 +194,5 @@ Bug reports and ideas are welcome in [Issues](https://github.com/shubham10divaka
 
 <div align="center">
 <br>
-<sub>Built for people who read papers for a living.</sub>
+<sub>Built by Subham Divakar with ❤️ for people who read papers for a living.</sub>
 </div>

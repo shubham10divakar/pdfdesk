@@ -15,6 +15,16 @@ from pathlib import Path
 from pdfdesk import __version__
 
 DEFAULT_PORT = 5173
+AUTHOR = "Subham Divakar"
+ISSUES = "https://github.com/shubham10divakar/pdfdesk/issues"
+
+
+def say(text: str, ascii_fallback: str) -> None:
+    """Print text, or a plain-ASCII version on consoles that can't encode it (older Windows code pages)."""
+    try:
+        print(text, flush=True)
+    except UnicodeEncodeError:
+        print(ascii_fallback, flush=True)
 
 # Windows can map .js to text/plain through the registry, which browsers refuse to run.
 TYPES = {
@@ -96,6 +106,8 @@ def main(argv: list[str] | None = None) -> int:
 
     url = f"http://localhost:{args.port}/"
     print(f"PDFDesk {__version__} running at {url}  (Ctrl+C to stop)")
+    say(f"Built by {AUTHOR} with ♥", f"Built by {AUTHOR} with <3")
+    print(f"Feedback and questions: {ISSUES}", flush=True)
     if not args.no_browser:
         threading.Timer(0.3, webbrowser.open, args=(url,)).start()
     try:

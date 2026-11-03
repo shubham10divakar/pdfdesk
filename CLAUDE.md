@@ -17,6 +17,8 @@ A local-first research paper workspace: library + PDF reader + notes + reading-s
 - PDF.js 3.11.174 UMD and the fonts are vendored in `prototype/vendor/` (no CDN, works offline). The worker script is loaded as a normal `<script>`, which sets `globalThis.pdfjsWorker` so PDF.js runs on the main thread.
 - `pdfdesk/` is the Python package: `cli.py` serves the app with the stdlib on 127.0.0.1:5173. The wheel bundles `prototype/` as `pdfdesk/static/` at build time (hatchling `force-include` in `pyproject.toml`); there is no second copy in the repo.
 
+- The About page (`aboutHTML()`, data in `AUTHOR` and `FEATURES` in `app.js`) lists every feature. When a feature is added or changed, update `FEATURES` there and README.md.
+
 - `reference/` holds the original idea notes, the design skill used, and the single-file build. Read `reference/skills/artifact-design/SKILL.md` before changing the UI.
 
 ## Conventions

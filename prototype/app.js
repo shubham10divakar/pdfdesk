@@ -1,7 +1,7 @@
 (function(){
 "use strict";
 const PDFJS = window.pdfjsLib || window['pdfjs-dist/build/pdf'] || null;
-if (PDFJS) { try { PDFJS.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; } catch(e){} }
+if (PDFJS) { try { PDFJS.GlobalWorkerOptions.workerSrc = "vendor/pdfjs/pdf.worker.min.js"; } catch(e){} }
 
 const $ = (s, r=document) => r.querySelector(s);
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -15,6 +15,9 @@ const fmtTime = t => new Date(t).toLocaleTimeString(undefined, {hour:"2-digit", 
 const fmtMin = m => m >= 60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m}m`;
 const rel = t => { if(!t) return "Never"; const d = Math.round((day0()-day0(t))/DAY); return d===0?"Today":d===1?"Yesterday":d<7?`${d} days ago`:fmtDate(t); };
 const isoDay = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
+
+const VERSION = "0.1.1"; // keep in step with pdfdesk/__init__.py
+const HEART = '<svg class="heart" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14s-5.5-3.4-5.5-7.3C2.5 4.6 4 3 5.9 3 7 3 7.6 3.6 8 4.3 8.4 3.6 9 3 10.1 3 12 3 13.5 4.6 13.5 6.7 13.5 10.6 8 14 8 14z"/></svg>';
 
 const STATUSES = [["inbox","Inbox"],["planned","Planned"],["reading","Reading"],["paused","Paused"],["completed","Completed"],["revisit","Revisit"]];
 const SLABEL = Object.fromEntries(STATUSES);
@@ -117,12 +120,16 @@ function renderSide(){
   const f = S.ui.view === "library" ? S.ui.filter : null;
   const hasEx = S.papers.some(p => p.sample);
   $("#side").innerHTML = `
-    <div class="brand"><b>PDFDesk</b><span>local</span></div>
+    <div class="brand-wrap">
+      <div class="brand"><b>PDFDesk</b><span>local</span></div>
+      <button class="byline" data-act="about" title="About PDFDesk and its author">Built by ${esc(AUTHOR.name)} with ${HEART}<span class="vh">love</span></button>
+    </div>
     <button class="btn primary" data-act="add">+ Add PDFs</button>
     <input class="search" id="q" type="search" placeholder="Search title, author, tag" value="${esc(S.ui.q)}" aria-label="Search papers">
     <nav class="nav">
       <button class="nav-i ${S.ui.view==="home"?"on":""}" data-act="home">Overview</button>
       <button class="nav-i ${f==="all"?"on":""}" data-act="filter" data-v="all">All papers <span class="ct">${S.papers.length}</span></button>
+      <button class="nav-i ${S.ui.view==="about"?"on":""}" data-act="about">About</button>
     </nav>
     <div>
       <div class="nav-h">Reading lifecycle</div>
@@ -245,10 +252,105 @@ function libHTML(){
 
 function renderMain(){
   const m = $("#main"); m.classList.remove("is-reader");
-  m.innerHTML = S.ui.view === "library" ? libHTML() : homeHTML();
+  m.innerHTML = S.ui.view === "library" ? libHTML() : S.ui.view === "about" ? aboutHTML() : homeHTML();
   m.scrollTop = 0;
 }
 function renderAll(){ renderSide(); if (S.ui.view === "reader" && R) renderPanel(); else renderMain(); }
+
+/* ---------------- about ---------------- */
+// Who built PDFDesk and where to reach them. Links with an empty url are not shown.
+const AUTHOR = {
+  name: "Subham Divakar",
+  role: "Software engineer and ML researcher",
+  bio: "I built PDFDesk for myself. I read a lot of papers and kept losing track of what I'd read, how far I got and why it mattered. People who saw it loved it, so here it is: a small version of a bigger tool I use every day. More features are on the way.",
+  links: [
+    {label:"Website", handle:"subhamdivakar.com", url:"https://subhamdivakar.com/"},
+    {label:"LinkedIn", handle:"subham-divakar", url:"https://www.linkedin.com/in/subham-divakar-a7420a12a/"},
+    {label:"Google Scholar", handle:"", url:"https://scholar.google.com/citations?user=44ecZj0AAAAJ&hl=en"},
+    {label:"GitHub", handle:"shubham10divakar", url:"https://github.com/shubham10divakar"},
+    {label:"PyPI", handle:"shubham10divakar", url:"https://pypi.org/user/shubham10divakar/"},
+  ],
+};
+const REPO = "https://github.com/shubham10divakar/pdfdesk";
+const FEATURES = [
+  ["Library and lifecycle", [
+    "Every paper moves through Inbox, Planned, Reading, Paused, Completed and Revisit",
+    "Opening a paper moves it to Reading; reaching the last page asks for Completed or Revisit",
+    "Import with the button or drag and drop; title, authors and page count come from the PDF",
+    "Search by title, author or tag, and filter by status or tag from the sidebar",
+    "Set a target page and date; it shows up in Up next"]],
+  ["Reader", [
+    "Sharp PDF rendering with selectable text",
+    "Zoom, jump to a page, bookmarks",
+    "Every paper reopens at the page you left it on",
+    "Attach or replace the PDF for any paper"]],
+  ["Highlights", [
+    "Four colours, each with one meaning: yellow key idea, green method or result, blue definition, pink question",
+    "Comment on any highlight and filter the list by colour",
+    "Click a highlight to jump to it on the page",
+    "Highlights keep their text and position, so they stay put when you zoom",
+    "Extract to notes pulls every highlight into your notes with its page"]],
+  ["Notes", [
+    "Markdown notes for every paper, saved as you type",
+    "Write p. 12 and it becomes a link to page 12",
+    "Cite the page you're on, insert highlights, copy everything as Markdown"]],
+  ["Reading sessions", [
+    "Each sitting is logged with the pages you covered",
+    "Only active time counts: the clock pauses when the tab is hidden or you're idle for 3 minutes",
+    "Add a one-line takeaway at the end of a session"]],
+  ["Overview", [
+    "Papers, reading now, completed, time and pages this week",
+    "Continue reading with one-click resume",
+    "A 17-week reading calendar with your streak and total hours",
+    "Up next by target date, a daily revision queue of past highlights, and the full reading log"]],
+  ["Private and offline", [
+    "PDFs, notes and history stay on your computer; no account, no cloud, no tracking",
+    "The PDF engine and fonts are built in, so it works without internet",
+    "Dark mode follows your system setting"]],
+];
+const KEYS = [[["j", "→"], "Next page"], [["k", "←"], "Previous page"], [["b"], "Bookmark this page"], [["Enter"], "Jump to the page typed in the page box"], [["Esc"], "Close the highlight menu"]];
+
+function aboutHTML(){
+  const links = AUTHOR.links.filter(l => l.url);
+  const initials = AUTHOR.name.split(" ").map(w => w[0]).join("").slice(0, 2);
+  const nFeat = FEATURES.reduce((a, f) => a + f[1].length, 0);
+  return `<div class="wrap about">
+    <div><div class="eyebrow">About</div><h1 class="page-h">PDFDesk</h1><p class="sub">A reading desk for research papers. Version <span class="num">${VERSION}</span>.</p></div>
+
+    <section class="me" aria-labelledby="me-h">
+      <div class="me-av" aria-hidden="true">${esc(initials)}</div>
+      <div class="me-body">
+        <div class="eyebrow">About me</div>
+        <h2 id="me-h">${esc(AUTHOR.name)}</h2>
+        <div class="me-role">${esc(AUTHOR.role)}</div>
+        <p>${esc(AUTHOR.bio)}</p>
+        ${links.length ? `<div class="me-links">${links.map(l => `<a class="btn" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}${l.handle ? ` <span class="h">${esc(l.handle)}</span>` : ""}</a>`).join("")}</div>` : ""}
+      </div>
+    </section>
+
+    <section class="fb" aria-labelledby="fb-h">
+      <div><h2 id="fb-h">Feedback and questions</h2>
+      <p>Found a bug, missing a feature, or not sure how something works? I'd like to hear it. Open an issue on GitHub${links.some(l => l.label === "LinkedIn") ? ", or message me on LinkedIn" : ""}.</p></div>
+      <div class="fb-acts">
+        <a class="btn primary" href="${REPO}/issues/new" target="_blank" rel="noopener">Report a bug or idea</a>
+        <a class="btn" href="${REPO}" target="_blank" rel="noopener">Source on GitHub</a>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="ft-h">
+      <div class="sec-h"><h2 id="ft-h">Everything PDFDesk does</h2><span class="meta">${nFeat} features</span></div>
+      <div class="ft-grid">
+        ${FEATURES.map(([h, items]) => `<div class="ft"><h3>${esc(h)}</h3><ul>${items.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("")}
+        <div class="ft"><h3>Keyboard shortcuts</h3><div class="kb">${KEYS.map(([ks, what]) => `<div class="kb-row"><span>${ks.map(k => `<kbd>${esc(k)}</kbd>`).join(" ")}</span><span>${esc(what)}</span></div>`).join("")}</div></div>
+      </div>
+    </section>
+
+    <footer class="about-foot">
+      <span>Built by ${esc(AUTHOR.name)} with ${HEART}<span class="vh">love</span></span>
+      <span>MIT licence · PDF rendering by PDF.js (Apache-2.0) · Source Serif 4, IBM Plex Sans and IBM Plex Mono (SIL OFL)</span>
+    </footer>
+  </div>`;
+}
 
 /* ---------------- reader ---------------- */
 let R = null;
@@ -616,6 +718,7 @@ document.addEventListener("click", async e => {
   const p = R ? getP(R.id) : null;
   switch (a){
     case "home": closeReader(); S.ui.view = "home"; save(); renderAll(); break;
+    case "about": closeReader(); S.ui.view = "about"; save(); renderAll(); break;
     case "filter": closeReader(); S.ui.view = "library"; S.ui.filter = v; save(); renderAll(); break;
     case "open": openReader(v); break;
     case "open-hl": { const pp = getP(v), h = pp && pp.highlights.find(x => x.id === t.dataset.h); S.ui.tab = "highlights"; openReader(v, h ? {page:h.page, hl:h.id} : null); break; }
