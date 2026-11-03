@@ -733,7 +733,7 @@ function renderPanel(){
       <button class="btn sm" data-act="ins-hl" style="margin-left:auto">Extract to notes</button></div>
       <div class="hint">Yellow key idea · green method/result · blue definition · pink question</div>
       ${hs.length ? hs.map((h,i) => `${i?'<div class="hl-sep"></div>':""}<div class="hl-item" style="--c:var(--hl-${h.color})"><span class="stripe"></span><div class="body">
-          <p class="txt">${esc(h.text)}</p>
+          <button class="txt" data-act="goto" data-v="${h.page}" data-h="${h.id}" title="Show on page ${h.page}">${esc(h.text)}</button>
           <textarea class="hl-cm" data-cm="${h.id}" rows="1" placeholder="Add a comment">${esc(h.comment)}</textarea>
           <div class="acts"><button class="pref" data-act="goto" data-v="${h.page}" data-h="${h.id}">p. ${h.page}</button><span>${HLC[h.color]}</span><button data-act="hl-del" data-v="${h.id}" style="margin-left:auto">Remove</button></div>
         </div></div>`).join("") : `<div class="empty">Select text in the paper and pick a colour to highlight it.</div>`}`;
