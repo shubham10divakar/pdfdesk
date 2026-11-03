@@ -29,6 +29,32 @@ On `mouseup`/`touchend`, the selection range's client rects are converted to pag
 ### Sessions
 A 1-second ticker adds to `R.session.active` only if the tab is visible and there was input in the last 3 minutes. `endSession(note)` writes a record if at least 1 minute passed, the page range changed, or a note was given. It runs on leaving the reader, opening another paper, "Log session", and `pagehide`.
 
+### Where your data lives
+
+Importing a PDF **copies** it into the browser. The original file is never moved, renamed or changed.
+
+| What | Where | Key |
+|---|---|---|
+| The PDF copy | IndexedDB (the browser's database for large files) | database `researchdesk`, store `files`, keyed by paper id |
+| Everything else: title, authors, status, highlights, notes, sessions, bookmarks, UI state | localStorage | one JSON blob under `researchdesk.v1` (shape in data-model.md) |
+
+Import calls `idb.put(id, file)` (`importFiles` in `app.js`); opening a paper reads the blob back with `idb.get(id)`. That is why papers are still there after a restart.
+
+On disk this sits in the browser profile, not in a folder you can browse. For Chrome on Windows:
+
+```
+%LOCALAPPDATA%\Google\Chrome\User Data\Default\IndexedDB\http_localhost_5173.indexeddb.leveldb\
+%LOCALAPPDATA%\Google\Chrome\User Data\Default\IndexedDB\http_localhost_5173.indexeddb.blob\
+```
+
+Edge uses the same layout under `Microsoft\Edge\User Data`. These are the browser's internal database files, not `.pdf` files.
+
+What follows from this:
+- **Per browser and per address.** Chrome and Edge each have their own library; `localhost:5173` and `localhost:8080` are separate libraries.
+- **Clearing site data deletes the library,** PDF copies included. The originals are safe; highlights, notes and history are not.
+- **Each PDF is stored twice:** the original plus the browser's copy.
+- **No way out yet.** Export/import fixes this: see [export-import.md](export-import.md). In 1.x, PDFs live in a normal library folder and everything else in a SQLite file (section 2).
+
 ### Known limitations
 - All state in one localStorage blob (~5 MB limit); fine for hundreds of papers, not thousands.
 - Highlight positions depend on the exact PDF file. Replacing a PDF drops highlight positions (text is kept).
@@ -55,7 +81,7 @@ React UI ──invoke──▶ Rust commands ──▶ SQLite (library.db)
 ```
 
 ### Migration from the prototype
-Add a JSON export to the prototype (Phase 1), then a one-time importer in the desktop app that reads that JSON plus the PDFs.
+Add export/import to the prototype (Phase 1, spec in [export-import.md](export-import.md)), then a first-run importer in the desktop app that reads the same `.zip`: `library.json` into SQLite, `pdfs/` into the library folder.
 
 ### Possible shared core with SlideNotes
 SlideNotes (separate project) also links PDF positions to note sections. If both survive, factor out a small package for anchors, page references and note links, used by both.

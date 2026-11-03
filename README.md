@@ -159,13 +159,13 @@ pdfdesk --version
 
 Upgrade any time with `pip install -U pdfdesk`.
 
-> **Good to know:** in this version your library is stored in the browser you open PDFDesk in, for the address `localhost:5173`. Keep using the same browser and the default port and your library will be there every time. Uninstalling the package doesn't delete it.
+> **Good to know:** adding a PDF saves a copy inside PDFDesk; your original file stays where it is, untouched. In this version your library is stored in the browser you open PDFDesk in, for the address `localhost:5173`. Keep using the same browser and the default port and your library will be there every time. Uninstalling the package doesn't delete it.
 
 ## What's coming
 
 PDFDesk is at **0.1**, an early release. Next up:
 
-- **Export and import** your whole library, PDFs included.
+- **Export and import** your whole library as one file: PDFs, highlights, notes and history, plus readable Markdown copies of your notes. Use it for backups or to move to another browser or computer.
 - **arXiv and DOI import**: paste an id and the title, authors, year and venue fill themselves in.
 - **Full-text search** across notes and highlights.
 - **PDF outline** in the sidebar, from the paper's table of contents.

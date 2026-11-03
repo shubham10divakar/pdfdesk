@@ -2,7 +2,7 @@
 
 (Formerly ResearchDesk. Product, PyPI package and command are `pdfdesk`; browser storage keys keep the old name, see decisions.md D-007.)
 
-Read this first, then `DEVELOPMENT.md`, `docs/architecture.md` and `docs/roadmap.md`.
+Read this first, then `DEVELOPMENT.md`, `docs/architecture.md` (incl. "Where your data lives") and `docs/roadmap.md`. Export/import is specified in `docs/export-import.md`; build to that spec.
 
 `README.md` is the product page and the PyPI description: user-facing copy only, absolute image URLs. Developer detail goes in `DEVELOPMENT.md`. When a user-visible feature changes, update both.
 

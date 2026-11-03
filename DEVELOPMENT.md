@@ -108,7 +108,7 @@ reference/        how v0.1 was made: original idea notes, design skill, single-f
 
 The keys keep the project's old name (ResearchDesk) so existing libraries aren't lost.
 
-Clearing site data for `localhost:5173` wipes everything. There is no export yet; it's on the roadmap.
+Imported PDFs are copies; the originals are never touched. Clearing site data for `localhost:5173` wipes the library. Details, including where this sits on disk: [docs/architecture.md § Where your data lives](docs/architecture.md#where-your-data-lives). Export/import is next: [docs/export-import.md](docs/export-import.md).
 
 ## License
 
