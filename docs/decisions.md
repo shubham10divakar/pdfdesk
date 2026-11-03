@@ -38,3 +38,8 @@ The browser storage keys (`localStorage["researchdesk.v1"]`, IndexedDB `research
 ## D-009 · Vendor PDF.js and fonts (2026-11-03)
 PDF.js 3.11.174 and Latin/Latin Extended subsets of the three fonts live in `prototype/vendor/` with their licences (Apache-2.0, SIL OFL 1.1).
 *Why:* a local-first app that needs the internet to open a PDF isn't local-first. Other scripts fall back to system fonts to keep the package small.
+
+## D-010 · Under `pdfdesk`, the library lives on disk (2026-11-03)
+The Python server stores the library in a folder (`~/PDFDesk` by default): `library.json`, real PDF files in `pdfs/`, daily backups. The app uses it whenever the server's API answers, and falls back to browser storage on a plain static server.
+*Why:* browser storage is per origin and per browser, so another port or browser showed an empty library and clearing site data deleted everything. Export/import only works around that by hand. The folder layout is the one 1.x will use, so 0.2 users already have their data where the desktop app expects it.
+*Spec:* [disk-storage.md](disk-storage.md).
