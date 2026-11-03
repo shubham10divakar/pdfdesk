@@ -262,7 +262,7 @@ function renderAll(){ renderSide(); if (S.ui.view === "reader" && R) renderPanel
 const AUTHOR = {
   name: "Subham Divakar",
   role: "Software engineer and ML researcher",
-  bio: "I built PDFDesk for myself. I read a lot of papers and kept losing track of what I'd read, how far I got and why it mattered. People who saw it loved it, so here it is: a small version of a bigger tool I use every day. More features are on the way.",
+  bio: "I built PDFDesk for myself. I read a lot of papers and kept losing track of what I'd read, how far I got and why it mattered. So I built a tool for complete note-making across PDFs and slide decks. I've made notes in it every day for over two years. People who saw it loved it, so here it is: a small version of that tool. More features are on the way.",
   links: [
     {label:"Website", handle:"subhamdivakar.com", url:"https://subhamdivakar.com/"},
     {label:"LinkedIn", handle:"subham-divakar", url:"https://www.linkedin.com/in/subham-divakar-a7420a12a/"},
