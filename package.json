@@ -1,0 +1,14 @@
+{
+  "name": "researchdesk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first research paper workspace: PDF library, reading lifecycle, highlights, notes and reading-session history.",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "check": "node --check prototype/app.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

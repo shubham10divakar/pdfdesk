@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ResearchDesk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="side" id="side"></aside>
+  <main class="main" id="main"></main>
+</div>
+<div class="selpop" id="selpop" hidden>
+  <button class="sw" style="--c:var(--hl-yellow)" data-act="hl" data-v="yellow" aria-label="Highlight yellow" title="Key idea"></button>
+  <button class="sw" style="--c:var(--hl-green)" data-act="hl" data-v="green" aria-label="Highlight green" title="Method / result"></button>
+  <button class="sw" style="--c:var(--hl-blue)" data-act="hl" data-v="blue" aria-label="Highlight blue" title="Definition"></button>
+  <button class="sw" style="--c:var(--hl-pink)" data-act="hl" data-v="pink" aria-label="Highlight pink" title="Question / doubt"></button>
+  <span class="sep"></span>
+  <button class="btn" data-act="hl-note">Add note</button>
+</div>
+<div class="toast" id="toast" hidden></div>
+<div class="drop" id="drop" hidden><div>Drop PDFs to add them to your Inbox</div></div>
+<input type="file" id="fileIn" accept="application/pdf,.pdf" multiple hidden>
+<input type="file" id="attachIn" accept="application/pdf,.pdf" hidden>
+
+<!-- PDF.js 3.11.174 (UMD). Loading the worker as a plain script makes PDF.js run its parser on the main thread,
+     which avoids cross-origin worker issues. Vendor these files locally once we move to Tauri. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

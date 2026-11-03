@@ -1,0 +1,244 @@
+What you're describing is actually a very interesting idea! I would call it a PDF Research Workspace or Research Paper IDE.
+
+You don't simply want a PDF reader. You want a centralized environment where you can manage your entire reading and research lifecycle.
+
+Think of it as combining:
+
+- VS Code: A workspace for organizing files and projects.
+- Zotero: A reference manager for research papers.
+- Notion: A system for tracking tasks, status and notes.
+- PDF reader: For reading, highlighting, annotating and bookmarking.
+- Reading tracker: To remember what you read, when you read it, and what remains.
+
+The important distinction is that your PDFs are not just files. Each PDF represents a piece of knowledge that moves through a lifecycle.
+
+## 1. What the tool should look like
+
+Imagine opening the application:
+
+ResearchDesk
+
+Workspace
+
+# 128
+
+Total papers
+
+# 34
+
+Completed
+
+# 12
+
+In progress
+
+Your reading workspace
+
+All papers
+
+128
+
+Reading queue
+
+18
+
+Currently reading
+
+12
+
+Completed
+
+34
+
+Important / Revisit
+
+21
+
+Recently opened
+
+Attention Is All You Need
+
+Last read: November 3 · Page 12 of 15
+
+Reading
+
+BERT: Pre-training of Deep Bidirectional Transformers
+
+Last read: November 2 · Page 8 of 16
+
+Completed
+
+Reading progress this week
+
+## 7 papers
+
+This is the kind of experience I'd aim for.
+
+## 2. The actual PDF reading experience
+
+This is where the application becomes more like an IDE.
+
+[5.2 One article, one note  medium sized literature notes.en · windingwind/zotero-better-notes Wiki · GitHub](https://images.openai.com/static-rsc-4/2sqImxLpMUvgOd2V1iGiWomTOcEUNH4krmJpVLSrC90hrFrviB8YI7fk0XEzFPL_1yDnwobmZwJ4jZkq6qXTv1gkc3YOjZN5DVQIzsz-6jAAB8v8VZoodxHM6Agu9V6Pu8nLyKSbWxa8aZILbvB9ZiSrKc7Efu3EU8kzpy8rcsI?purpose=inline)
+
+[LiquidText](https://images.openai.com/static-rsc-4/wokxjLneetW4mI4Ddycq5EXGkUStbEtroKbFksYo8Jxw6_Py1PEhsPdwhVKHufGCVQ9qxJ3ECQhnjqETIvno-6nZsrqnfWr4D3oDrQbOY1_U_6tRTgD7ZzvifZLz7S_UK35pPFYVihjoueSuTlDdfNnznXwZp1KFCIthOlodTqA?purpose=inline)
+
+[📚 This app remembers everything you read](https://images.openai.com/static-rsc-4/ockx9i0ick-_x39yy7NTuCZt_oh1u5Fj8NPAYmW6wa8HXKm5CJvOyemjsv99ylpkXwE0NfUNGvA1Hu4eSINdEEyWFMRU3bg3xD5D28yFrNrMyYFNC22NyC8V7g8MWRop1_k6Q3eiAnVe6uUnFkR1gXFiiedEo22YeBmk5FNnF8Y?purpose=inline)
+
+8
+
+I'd want a three-panel interface:
+
+| Panel  | Purpose                                                     |
+| ------ | ----------------------------------------------------------- |
+| Left   | PDF library, folders, tags, reading queue                   |
+| Center | PDF viewer with highlighting and annotations                |
+| Right  | Personal notes, extracted highlights, research observations |
+
+The right panel should be independent of the PDF page length. Your notes might become 10–20 pages while the paper itself remains open.
+
+You should also be able to:
+
+- Jump from a note to its original PDF page.
+- Highlight text using different colors.
+- Add comments to specific paragraphs.
+- Extract all highlights into a structured note.
+- Bookmark important pages.
+- Maintain separate notes for each paper.
+
+## 3. Reading management — the most important feature
+
+I would introduce a proper reading lifecycle.
+
+| Status    | Meaning                 |
+| --------- | ----------------------- |
+| Inbox     | Imported, not evaluated |
+| Planned   | Intend to read          |
+| Reading   | Currently reading       |
+| Paused    | Started but postponed   |
+| Completed | Finished reading        |
+| Revisit   | Need to read again      |
+
+Each paper should maintain its own reading history.
+
+For example:
+
+Attention Is All You Need
+
+Reading
+
+Progress: 80%
+
+Reading sessions
+
+1. November 3, 2026
+
+   Pages 9–12 · 35 minutes
+
+   Understood scaled dot-product attention.
+2. November 2, 2026
+
+   Pages 5–8 · 40 minutes
+
+   Studied multi-head attention.
+3. October 31, 2026
+
+   Pages 1–4 · 25 minutes
+
+   Introduction and motivation.
+
+Next reading target
+
+Page 13 · November 4
+
+Planned
+
+This gives you something that ordinary PDF readers generally don't emphasize: a historical record of your intellectual progress.
+
+## 4. Existing applications worth examining
+
+There are already some interesting products in this space.
+
+[PDF viewer's right pane width is not preserved between sessions - Zotero Forums](https://images.openai.com/static-rsc-4/R1oA8LCxP7wC0tYrE3k02POkVHp2u-CvrTsgbGOdKmqDU0BTkbU-TCtGsCHL28b5hNDsta2k0TxbVXkCsHoUwvoHIOltDcgXEM4ehkb1DNwOua8a0ZGvMWNIBPqg_rOWieziKt4EnfacYrg-Uoci4R_DWY6D5_uBeHonJEiJrBA?purpose=inline)
+
+1\. Zotero
+
+My first recommendation
+
+Reference management, collections, tags, PDF reading, annotations and extracted notes.
+
+[Official Zotero features](https://zotero.io/features.html?utm_source=chatgpt.com)
+
+[13 Best Notetaking Apps for iPad \[2025\] - Paperlike](https://images.openai.com/static-rsc-4/Em-dtCblqrFnZt0TJELQbM1OhQymhOGGHNKfR_C6_24FEHTroe4BJUqsoBnx6zVK7bO3IBzGMgv__FUtf4XSszTdm3_Mp3rWpMStii3hJVtNmuzGzELoKhph3lax_6gVRk_N_VItbmcSKdefaCV5wZjr3M_LXGxpkwUt9plCwrQ?purpose=inline)
+
+2\. LiquidText
+
+Particularly interesting for connecting excerpts, documents and notes visually.
+
+[LiquidText website](https://www.liquidtext.net/?utm_source=chatgpt.com)
+
+[Readwise](https://images.openai.com/static-rsc-4/n-kZQPx7WtGN5Mgl_vUFhAzMFy8X00o1bnpai87e6b3b5QZpePOKAhGiDp7jYEMzUoKlt64VRzWpJ2llb98-cg39k5JC7SdMAYQnJnSU19XA0Ohmuz729UqDCooEUiLW4TpEmDjMuXhkY0Dvmj2mM1dmyrSAWfwAKrbCJ89-Tkc?purpose=inline)
+
+3\. Readwise Reader
+
+Unified reading inbox, highlights, annotations, filtering and AI-assisted document exploration.
+
+[Readwise Reader documentation](https://docs.readwise.io/reader/docs?utm_source=chatgpt.com)
+
+[Add notes and annotate PDFs | Paperpile Help Center](https://images.openai.com/static-rsc-4/PMjWqV3-SE-PcRQQIz1xgLsQuFkhisjZ5Keay7fqd90rJK53SLnBX__o0lybSBfgSe8_WiWRoAn5tcH4mxaq3byAB6Pt6AGWAJVuWlDK7xYbN1UcSdScO7nb9LpO42YFgLp95Aa44CNDpvg0NWsCkuBiG1xW9HS1TGyXcFWeE78?purpose=inline)
+
+4\. Paperpile
+
+Browser-oriented research paper management, PDF annotations and note export.
+
+[Paperpile PDF annotation features](https://paperpile.com/features/pdf-annotator/?utm_source=chatgpt.com)
+
+My recommendation: start by examining Zotero and LiquidText. Zotero is particularly strong for managing a large research library, while LiquidText demonstrates a different approach to reading and connecting ideas. Neither should automatically be assumed to provide your complete reading-history workflow.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://www.zotero.org\&sz=32)
+
+Zotero Documentation+2
+
+
+
+## 5. Features I'd add that make it genuinely different
+
+Beyond the existing products, I'd add:
+
+1. Reading calendar: See what you read on each day, week or month.
+2. Reading backlog: Papers planned for this week, next week and later.
+3. Automatic resume: Reopen a paper exactly where you stopped.
+4. Reading analytics: Pages read, hours spent, papers completed and unfinished papers.
+5. Research connections: Connect papers by topic, methodology, architecture and findings.
+6. Revision queue: Resurface important highlights from previously read papers.
+7. AI-assisted notes: Generate a structured summary from your own annotations, with page references.
+
+## 6. One possible application architecture
+
+If you decide to build this yourself:
+
+| Component           | Technology              |
+| ------------------- | ----------------------- |
+| Desktop application | Tauri + React           |
+| PDF rendering       | PDF.js                  |
+| Local database      | SQLite                  |
+| PDF annotations     | PDF.js annotation layer |
+| Search              | SQLite FTS5             |
+| Notes               | Markdown editor         |
+| Analytics           | SQL queries             |
+| AI features         | Local or API-based LLM  |
+
+I'd make it local-first, so your PDFs, notes and reading history remain under your control.
+
+## One important question
+
+Are you thinking of:
+
+I want an existing application that does all this.
+
+I want to build my own PDF Research Workspace.
+
+I want to explore existing applications and then build something better.
+
+Continue
+
+I particularly like the idea of making this a dedicated research environment rather than another document manager.
