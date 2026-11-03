@@ -21,7 +21,9 @@ const center = hid => js(`(() => { const r = document.querySelector('.hl[data-h=
 await cdp("Page.enable"); await cdp("Runtime.enable"); await cdp("DOM.enable");
 await cdp("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 await cdp("Page.navigate", { url: app }); await wait(1800);
-await js(`try { localStorage.clear() } catch(e){}`); await cdp("Page.reload"); await wait(1800);
+await cdp("Page.navigate", { url: "about:blank" }); await wait(300);   // leave first: the app saves on unload
+await cdp("Storage.clearDataForOrigin", { origin: new URL(app).origin, storageTypes: "all" });
+await cdp("Page.navigate", { url: app }); await wait(1800);
 const { root } = await cdp("DOM.getDocument"); const { nodeId } = await cdp("DOM.querySelector", { nodeId: root.nodeId, selector: "#fileIn" });
 await cdp("DOM.setFileInputFiles", { nodeId, files: [pdf] }); await wait(2500);
 await js(`[...document.querySelectorAll('[data-act="open"]')].find(e => /Reading Logs/.test(e.textContent)).click()`); await wait(2500);

@@ -22,8 +22,9 @@ const openSessions = async () => { await js(`[...document.querySelectorAll('[dat
 await cdp("Page.enable"); await cdp("Runtime.enable");
 await cdp("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 await cdp("Page.navigate", { url: app }); await wait(1500);
-await js(`try { localStorage.clear() } catch(e){}`); await cdp("Page.reload"); await wait(1800);
-await js(`document.querySelector('[data-act="home"]').click()`); await wait(300); await js(`localStorage.setItem("researchdesk.v1", localStorage.getItem("researchdesk.v1") || "")`);
+await cdp("Page.navigate", { url: "about:blank" }); await wait(300);   // leave first: the app saves on unload
+await cdp("Storage.clearDataForOrigin", { origin: new URL(app).origin, storageTypes: "all" });
+await cdp("Page.navigate", { url: app }); await wait(1800);
 const week0 = await weekMin();
 await openSessions();
 const p0 = await paper(), first = p0.sessions[0];
