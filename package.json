@@ -1,6 +1,6 @@
 {
   "name": "pdfdesk",
-  "version": "0.2.2",
+  "version": "1.0.0",
   "private": true,
   "description": "Local-first research paper workspace: PDF library, reading lifecycle, highlights, notes and reading-session history.",
   "type": "module",

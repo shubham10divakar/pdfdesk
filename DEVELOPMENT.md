@@ -6,14 +6,14 @@ A local-first workspace for reading research papers. It treats each PDF as somet
 
 Think Zotero's library + a PDF reader + a notebook + a reading log, in one window.
 
-> **Status:** v0.1 prototype. A single-page browser app (HTML/CSS/JS, no build step). Data lives in the browser's localStorage and IndexedDB. The plan is to move to a Tauri + React + SQLite desktop app, shipped through the same `pdfdesk` package. See [docs/roadmap.md](docs/roadmap.md).
+> **Status:** 1.0, a browser app (HTML/CSS/JS, no build step) served by a small Python command, `pdfdesk`, that keeps the library in a folder on disk. The next major version (2.x) is a Tauri + React + SQLite desktop app shipped through the same `pdfdesk` package. See [docs/roadmap.md](docs/roadmap.md).
 
 ## Install
 
 Requires Python 3.9+. No other dependencies.
 
 ```bash
-pip install pdfdesk          # or a local wheel: pip install dist/pdfdesk-0.1.0-py3-none-any.whl
+pip install pdfdesk          # or a local wheel: pip install dist/pdfdesk-1.0.0-py3-none-any.whl
 pdfdesk                      # starts PDFDesk and opens http://localhost:5173
 pdfdesk --no-browser         # just start the server
 pdfdesk --help
@@ -46,7 +46,7 @@ Build the Python package with `python -m build` (outputs to `dist/`).
 3. `twine check dist/*` (renders the README the way PyPI will), then `twine upload dist/*`.
 4. Add the version to `CHANGELOG.md`, then tag the commit: `git tag -a v<v> -m "PDFDesk <v>" && git push origin v<v>`.
 
-The download badges in README.md (pepy.tech, shields.io) show "not found" until the first PyPI upload, then fill in within about a day.
+The download badges in README.md are both drawn by shields.io (total from pepy.tech, monthly from pypistats.org). Those services read PyPI's public download data with about a day's delay, so a newly published package shows "not found" for a day or two, then fills in by itself. Use shields.io's `pepy/dt` badge rather than `static.pepy.tech/badge/...`: the latter answers 404 until indexed, which GitHub shows as a broken image.
 
 ## Tests
 

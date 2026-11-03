@@ -31,9 +31,9 @@ The browser storage keys (`localStorage["researchdesk.v1"]`, IndexedDB `research
 *Why:* `pdfdesk` was free on PyPI. Renaming the storage keys would make existing libraries look empty, and nobody sees them.
 
 ## D-008 · pip is a long-term distribution channel (2026-11-03)
-`0.x` wheels bundle the browser app and a stdlib Python server (no Python dependencies). `1.x` will ship the Tauri app as platform-specific wheels under the same name and command, the way Ruff and uv ship Rust binaries. Native installers (`.msi`, `.dmg`) can sit alongside.
+`0.x` wheels bundle the browser app and a stdlib Python server (no Python dependencies). `1.x` will ship the Tauri app (now `2.x`, see D-012) as platform-specific wheels under the same name and command, the way Ruff and uv ship Rust binaries. Native installers (`.msi`, `.dmg`) can sit alongside.
 *Why:* the first users already have Python. One name and one command across both stacks means `pip install -U pdfdesk` is the upgrade path.
-*Costs:* per-platform CI builds for 1.x; Linux users install WebKitGTK themselves; no Start menu entry from pip; Tauri's own updater is off for pip installs.
+*Costs:* per-platform CI builds for the desktop app (2.x); Linux users install WebKitGTK themselves; no Start menu entry from pip; Tauri's own updater is off for pip installs.
 
 ## D-009 · Vendor PDF.js and fonts (2026-11-03)
 PDF.js 3.11.174 and Latin/Latin Extended subsets of the three fonts live in `prototype/vendor/` with their licences (Apache-2.0, SIL OFL 1.1).
@@ -47,3 +47,7 @@ The Python server stores the library in a folder (`~/PDFDesk` by default): `libr
 ## D-011 · Paper lookups go through the local server, to three fixed hosts (2026-11-03)
 Adding a paper by arXiv ID or DOI is done by `pdfdesk` (`pdfdesk/lookup.py`), which only ever contacts `export.arxiv.org`, `arxiv.org` and `api.crossref.org`, with the id validated before it goes into a URL. On a plain static server the feature explains it needs `pdfdesk`.
 *Why:* arXiv doesn't allow cross-site requests from a web page, and the PDF has to end up in the library folder anyway. Fixed hosts mean the endpoint can't be turned into a way to fetch arbitrary URLs.
+
+## D-012 · The browser app is 1.x; the desktop app becomes 2.x (2026-11-03)
+The browser app shipped through `pdfdesk` is released as 1.0.0, its first stable version. The Tauri desktop app planned as 1.x in D-008 becomes 2.x; everything else in D-008 stands (same package name and command, platform wheels, export file as the upgrade path).
+*Why:* the browser app now covers the whole Phase 1 list, keeps the library in a folder on disk, and is what people install; calling it 0.x undersold it. A major version is the right signal for the switch to a different runtime and storage (SQLite).

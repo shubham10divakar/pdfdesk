@@ -1,6 +1,6 @@
 # Export and import (spec)
 
-Status: **built** (in `app.js`, section `export / import`; not yet in a PyPI release). Must ship in a 0.x release before 1.x (see decisions.md D-008). How it's put together: [architecture.md § Export and import](architecture.md#export-and-import).
+Status: **built**, released in 0.2.1 (in `app.js`, section `export / import`). It's the upgrade path to the 2.x desktop app (decisions.md D-008, D-012). How it's put together: [architecture.md § Export and import](architecture.md#export-and-import).
 
 ## Why
 
@@ -8,7 +8,7 @@ Today the whole library lives inside one browser (see [architecture.md § Where 
 
 - there is no backup: clearing site data deletes highlights, notes and history;
 - a library can't move to another browser, another computer, or another port;
-- 0.x users would have no way to carry their library into the 1.x desktop app.
+- users would have no way to carry their library into the 2.x desktop app.
 
 Export and import fix all three with one file.
 
@@ -96,9 +96,9 @@ The rule throughout: **import never deletes or overwrites anything the user wrot
 - Downloads use a `Blob` and an `<a download>` link; import uses a hidden file input, like PDF import.
 - PDFs are read from and written to the existing `idb` helper; papers go through `S` and `save()`.
 
-## Used by 1.x
+## Used by 2.x
 
-The 1.x desktop app imports the same file on first run: `library.json` into SQLite, `pdfs/` into its library folder. This is the upgrade path from 0.x.
+The 2.x desktop app imports the same file on first run: `library.json` into SQLite, `pdfs/` into its library folder. This is the upgrade path from 1.x.
 
 ## Later
 

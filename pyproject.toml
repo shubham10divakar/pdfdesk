@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "pdfdesk"
 dynamic = ["version"]
-description = "Prototype: a local-first workspace for reading research papers, with a PDF reader, highlights, notes and reading-session history."
+description = "A local-first workspace for reading research papers: PDF reader, highlights, notes, search and a history of your reading."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -14,7 +14,7 @@ requires-python = ">=3.9"
 dependencies = []
 keywords = ["pdf", "research", "papers", "reader", "notes", "local-first"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Web Environment",
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",

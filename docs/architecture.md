@@ -111,7 +111,7 @@ Import library / drop a .zip or .json
 - **Merge never loses data.** Highlights and sessions are unioned by `id`, tags and bookmarks unioned, different notes appended under `--- Imported <date> ---` (once, even on repeated imports), and the reading position comes from whichever copy was opened last. Only "Replace my library" deletes, after a second confirmation that offers to export first.
 - **Paper ids are kept** across export and import; that is what makes re-importing and merging safe. `cleanPaper` gives every imported paper all the fields the app reads, so a hand-edited or older file can't break rendering.
 - **`idb.putStrict`** is the one storage call that reports failure. The normal `idb.put` swallows errors (fine for single PDFs), but import must know when the browser refuses a file so it can stop and say how far it got.
-- **Memory:** export reads every PDF into memory once to compute its CRC. Fine for hundreds of papers; streaming is a 1.x concern.
+- **Memory:** export reads every PDF into memory once to compute its CRC. Fine for hundreds of papers; streaming is a concern for the 2.x desktop app.
 - Tested end to end by `scripts/e2e/export-import.mjs` (headless Chrome, three isolated browser profiles).
 
 ### Known limitations

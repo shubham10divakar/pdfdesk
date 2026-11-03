@@ -33,9 +33,9 @@ See decisions.md D-008. One package name and one command across both stacks.
 - [x] **0.1.0**: wheel bundles `prototype/` + stdlib server; `pdfdesk` opens it at http://localhost:5173
 - [x] **0.2.1**: export/import, library on disk, open the folder from the app (on PyPI; 0.1.1 and 0.2.0 were tagged but never published)
 - [x] **0.2.2**: zoom scrolling fix (on PyPI)
-- [ ] **0.3.0**: everything under "Unreleased" in CHANGELOG.md (built and tested, not yet released)
-- [ ] **1.x**: platform wheels carrying the Tauri binary (Windows x64, macOS x64 + arm64, Linux x64), built in CI; `pdfdesk` launches the app. Consider pytauri if the backend should be Python
-- [ ] 1.x first run: offer to import a 0.x export file
+- [ ] **1.0.0**: first stable release; everything in CHANGELOG.md's 1.0.0 entry (tagged; publish to PyPI)
+- [ ] **2.x**: platform wheels carrying the Tauri binary (Windows x64, macOS x64 + arm64, Linux x64), built in CI; `pdfdesk` launches the app. Consider pytauri if the backend should be Python
+- [ ] 2.x first run: offer to import a 1.x export file (or read the 1.x library folder directly)
 - [ ] Optional native installers (`.msi`, `.dmg`) alongside pip
 
 ## Phase 2: desktop app (Tauri + React + SQLite)

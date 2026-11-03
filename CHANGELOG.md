@@ -2,7 +2,9 @@
 
 All notable changes to PDFDesk. Versions follow [semantic versioning](https://semver.org/); dates are release dates.
 
-## Unreleased
+## 1.0.0 (2026-11-03)
+
+First stable release. Everything since 0.2.2:
 
 - **Add a paper by arXiv ID or DOI.** Paste `1706.03762`, an arXiv link, a DOI or a doi.org link: title, authors, year and venue are filled in, and arXiv papers come with their PDF. A paper you already have opens instead of being added twice. Needs PDFDesk started with the `pdfdesk` command.
 - **Highlights survive a new version of the PDF.** Replace a paper's PDF (say, a newer arXiv version) and every highlight is found again by its text, even if it moved to another page or was slightly reworded. Highlights that can't be found are kept with their comments and marked "Not found in this PDF". New highlights also remember the text around them, so a phrase that appears twice lands on the right one.
