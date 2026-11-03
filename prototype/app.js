@@ -31,7 +31,7 @@ const HLC = {yellow:"Key idea", green:"Method / result", blue:"Definition", pink
 //  browser  on a plain static server (npm run dev, file://): localStorage + IndexedDB, as in 0.1.x
 const KEY = "researchdesk.v1", UIKEY = "pdfdesk.ui.v1", LEFTKEY = "pdfdesk.browserChecked";
 let S;
-const DISK = {on:false, dir:"", rev:"0", base:new Map(), sent:"", timer:0, busy:false, again:false, down:false};
+const DISK = {on:false, dir:"", platform:"", rev:"0", base:new Map(), sent:"", timer:0, busy:false, again:false, down:false};
 function load(){ try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; } catch(e){ return null; } }
 function save(){
   if (!DISK.on){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} return; }
@@ -43,6 +43,18 @@ let saveT; function saveSoon(){ clearTimeout(saveT); saveT = setTimeout(save, 50
 // The last version this window read from or wrote to disk, per paper. A conflict merges against it.
 const setBase = papers => { DISK.base = new Map(papers.map(p => [p.id, JSON.stringify(p)])); };
 const diskDirty = () => DISK.on && JSON.stringify(S.papers) !== DISK.sent;
+const FILE_MANAGER = {win32:"File Explorer", darwin:"Finder"};
+const folderLink = () => `<button class="path path-link" data-act="open-folder" title="Open in ${FILE_MANAGER[DISK.platform] || "your file manager"}">${esc(DISK.dir)}</button>`;
+async function openFolder(){
+  try {
+    const r = await fetch("api/open-folder", {method:"POST", headers:{"Content-Type":"application/json"}, body:"{}"});
+    if (!r.ok) throw new Error();
+    toast(`Opened in ${FILE_MANAGER[DISK.platform] || "your file manager"}`);
+  } catch(e){
+    try { await navigator.clipboard.writeText(DISK.dir); toast("Couldn't open the folder here, so its path is copied. Paste it into your file manager."); }
+    catch(err){ toast(`Couldn't open the folder. It's at ${DISK.dir}`); }
+  }
+}
 function netDown(on){ DISK.down = on; const b = $("#netbar"); if (b) b.hidden = !on; }
 
 async function pushDisk(){
@@ -245,7 +257,7 @@ function renderSide(){
     </div>
     <div class="side-foot">
       ${hasEx ? `<span>Showing example papers so you can try things out.</span><button data-act="clear-examples">Remove examples</button>` : ""}
-      ${DISK.on ? `<span>Saved on this computer in <span class="path" title="${esc(DISK.dir)}">${esc(DISK.dir)}</span></span>` : `<span>PDFs, notes and history stay in this browser.</span>`}
+      ${DISK.on ? `<span>Saved on this computer in ${folderLink()}</span>` : `<span>PDFs, notes and history stay in this browser.</span>`}
       <div class="side-io"><button data-act="exp">Export library</button><button data-act="imp">Import library</button></div>
     </div>`;
 }
@@ -448,7 +460,7 @@ function aboutHTML(){
 
     <section class="data" aria-labelledby="dt-h">
       <div><h2 id="dt-h">Your data</h2>
-      <p>${DISK.on ? `Your library is a folder on this computer: <span class="path">${esc(DISK.dir)}</span>. It holds library.json and your PDFs as normal files, with a daily backup. Every browser and port on this computer shows the same library, and adding a PDF never touches your original file. Export to move the library to another computer or keep an extra copy.` : `Your library lives in this browser at this address. Adding a PDF saves a copy here; your original file is never touched. Export to back it up or move it to another browser or computer. Run PDFDesk with the pdfdesk command to keep the library in a folder on disk instead.`}${S.ui.lastExport ? ` Last export: ${esc(fmtDay(S.ui.lastExport))}.` : " You haven't exported yet."}</p></div>
+      <p>${DISK.on ? `Your library is a folder on this computer: ${folderLink()}. It holds library.json and your PDFs as normal files, with a daily backup. Every browser and port on this computer shows the same library, and adding a PDF never touches your original file. Export to move the library to another computer or keep an extra copy.` : `Your library lives in this browser at this address. Adding a PDF saves a copy here; your original file is never touched. Export to back it up or move it to another browser or computer. Run PDFDesk with the pdfdesk command to keep the library in a folder on disk instead.`}${S.ui.lastExport ? ` Last export: ${esc(fmtDay(S.ui.lastExport))}.` : " You haven't exported yet."}</p></div>
       <div class="fb-acts">
         <button class="btn primary" data-act="exp">Export library</button>
         <button class="btn" data-act="exp-lite">Export without PDFs</button>
@@ -1047,6 +1059,7 @@ document.addEventListener("click", async e => {
     case "imp-replace-export": { const ok = await exportLibrary(true); if (ok) applyImport(true); break; }
     case "modal-close": closeModal(); break;
     case "left-add": addLeftovers(); break;
+    case "open-folder": openFolder(); break;
     case "left-skip": $("#leftbar").hidden = true; try { localStorage.setItem(LEFTKEY, "skipped"); } catch(err){} break;
     case "filter": closeReader(); S.ui.view = "library"; S.ui.filter = v; save(); renderAll(); break;
     case "open": openReader(v); break;
@@ -1143,7 +1156,7 @@ async function boot(){
   let info = null, note = "";
   try { const r = await fetch("api/info", {cache:"no-store"}); if (r.ok) info = await r.json(); } catch(e){}
   if (info && info.app === "pdfdesk"){
-    DISK.on = true; DISK.dir = info.dataDir; idb = diskFiles;
+    DISK.on = true; DISK.dir = info.dataDir; DISK.platform = info.platform || ""; idb = diskFiles;
     let ui = null; try { ui = JSON.parse(localStorage.getItem(UIKEY)); } catch(e){}
     const old = load(), L = await (await fetch("api/library", {cache:"no-store"})).json();
     if (L.papers){ S = {papers:L.papers, ui:ui || (old && old.ui) || {}}; DISK.rev = L.rev; DISK.sent = JSON.stringify(L.papers); setBase(L.papers); }

@@ -7,7 +7,9 @@ import errno
 import functools
 import http.server
 import json
+import os
 import socket
+import subprocess
 import sys
 import threading
 import webbrowser
@@ -44,6 +46,16 @@ TYPES = {
     ".woff2": "font/woff2",
     ".txt": "text/plain; charset=utf-8",
 }
+
+
+def open_folder(path: Path) -> None:
+    """Show the folder in the system file manager (File Explorer, Finder, or the Linux default)."""
+    if sys.platform == "win32":
+        os.startfile(str(path))  # type: ignore[attr-defined]
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", str(path)])
+    else:
+        subprocess.Popen(["xdg-open", str(path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def static_dir() -> Path:
@@ -116,7 +128,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return super().do_GET()
         store: Store = self.server.store  # type: ignore[attr-defined]
         if parts == ["info"]:
-            return self._json(200, {"app": "pdfdesk", "version": __version__, "dataDir": str(store.root), "rev": store.rev()})
+            return self._json(200, {"app": "pdfdesk", "version": __version__, "dataDir": str(store.root), "rev": store.rev(), "platform": sys.platform})
         if parts == ["library"]:
             rev, papers = store.read()
             return self._json(200, {"rev": rev, "papers": papers})
@@ -185,8 +197,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self._json(404, {"error": "not found"})
 
     def do_POST(self) -> None:
-        if self._allowed():
-            self._json(405, {"error": "not supported"})
+        if not self._allowed():
+            return
+        if self._api_path() == ["open-folder"]:
+            # Starts a program on this computer, so require proof the request comes from the app itself:
+            # its own Origin, and a JSON content type (which other sites can't send without a preflight).
+            if self.headers.get("Origin") is None or not (self.headers.get("Content-Type") or "").startswith("application/json"):
+                self.send_error(403, "Forbidden")
+                return
+            try:
+                open_folder(self.server.store.root)  # type: ignore[attr-defined]
+            except OSError as e:
+                return self._json(500, {"error": str(e.strerror or e)})
+            return self._json(200, {"ok": True})
+        self._json(405, {"error": "not supported"})
 
     def do_OPTIONS(self) -> None:
         # Never answer CORS preflights: other websites must not be able to write to the library.

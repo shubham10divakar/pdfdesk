@@ -1,12 +1,14 @@
 {
   "name": "pdfdesk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Local-first research paper workspace: PDF library, reading lifecycle, highlights, notes and reading-session history.",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/serve.mjs",
-    "check": "node --check prototype/app.js"
+    "dev": "python -m pdfdesk --port 5173 --data-dir ~/PDFDesk-test",
+    "dev:static": "node scripts/serve.mjs",
+    "check": "node --check prototype/app.js",
+    "test": "python -m unittest discover -s tests"
   },
   "engines": {
     "node": ">=18"

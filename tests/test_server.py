@@ -104,6 +104,23 @@ class ApiTest(unittest.TestCase):
         # the app's own address, under either name, is fine
         self.assertEqual(self.req("GET", "/api/info", headers={"Origin": f"http://127.0.0.1:{self.port}"}, host=f"127.0.0.1:{self.port}")[0], 200)
 
+    def test_open_folder(self):
+        import pdfdesk.cli as cli
+        opened = []
+        real, cli.open_folder = cli.open_folder, opened.append
+        try:
+            me = {"Origin": f"http://localhost:{self.port}", "Content-Type": "application/json"}
+            self.assertEqual(self.req("POST", "/api/open-folder", b"{}", me)[0], 200)
+            self.assertEqual(opened, [self.store.root])
+            # anything that doesn't prove it's the app itself is refused, and nothing is opened
+            self.assertEqual(self.req("POST", "/api/open-folder", b"{}", {"Content-Type": "application/json"})[0], 403)
+            self.assertEqual(self.req("POST", "/api/open-folder", b"{}", {"Origin": me["Origin"], "Content-Type": "text/plain"})[0], 403)
+            self.assertEqual(self.req("POST", "/api/open-folder", b"{}", {**me, "Origin": "https://evil.example"})[0], 403)
+            self.assertEqual(self.req("POST", "/api/open-folder", b"{}", me, host="evil.example")[0], 403)
+            self.assertEqual(len(opened), 1)
+        finally:
+            cli.open_folder = real
+
     def test_static_app_still_served(self):
         st, body = self.req("GET", "/")
         self.assertEqual(st, 200)

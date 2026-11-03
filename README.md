@@ -168,7 +168,7 @@ pdfdesk --version
 
 Upgrade any time with `pip install -U pdfdesk`.
 
-> **Where your library lives:** in a folder called `PDFDesk` in your home folder (`pdfdesk` prints the exact path). It holds `library.json`, your PDFs in `pdfs/`, and daily backups in `backups/`. Adding a PDF saves a copy there; your original file stays where it is. Uninstalling the package doesn't touch the folder. Use **Export library** to move it to another computer.
+> **Where your library lives:** in a folder called `PDFDesk` in your home folder (`pdfdesk` prints the exact path; click it in the sidebar or on the About page to open the folder). It holds `library.json`, your PDFs in `pdfs/`, and daily backups in `backups/`. Adding a PDF saves a copy there; your original file stays where it is. Uninstalling the package doesn't touch the folder. Use **Export library** to move it to another computer.
 
 ## What's coming
 

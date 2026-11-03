@@ -29,9 +29,11 @@ A local-first research paper workspace: library + PDF reader + notes + reading-s
 - Copy in the UI: plain, active voice, name things the way a reader would.
 
 ## How to run / check
-- `npm run dev` → http://localhost:5173
+- **Dev servers always use the library folder `C:\Users\Subham\PDFDesk-test`** (`~/PDFDesk-test`), never the real `~/PDFDesk` and never a temp/scratch folder. The owner keeps test data there and opens it from the app.
+- `npm run dev` → `python -m pdfdesk --port 5173 --data-dir ~/PDFDesk-test`, http://localhost:5173 (disk mode)
+- `npm run dev:static` → static server for `prototype/` (browser-storage mode, no library folder)
+- `npm test` → server + store unit tests. Automated e2e scripts (`scripts/e2e/`) use their own throwaway folders, which is fine: they delete and recreate them.
 - `npm run check` → syntax check of `app.js`
-- `python -m pdfdesk --data-dir <temp>` → same app via the Python server with a throwaway library folder (don't test against your real `~/PDFDesk`)
 - `python -m unittest discover -s tests` → server + store tests; e2e scripts in `scripts/e2e/` (see DEVELOPMENT.md)
 - `python -m build` → wheel + sdist in `dist/`; bump `__version__` in `pdfdesk/__init__.py`
 
