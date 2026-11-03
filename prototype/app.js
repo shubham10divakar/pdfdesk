@@ -545,6 +545,7 @@ async function openReader(id, jump){
   </div>`;
   renderPanel(); applyLayout();
   await loadDoc(p);
+  markTocCurrent(R ? R.current : 1);
   if (jump) goPage(jump.page, jump.hl);
   updateBanner(); updateBm();
 }
@@ -562,6 +563,7 @@ async function loadDoc(p){
       if (p.pages !== pdf.numPages){ p.pages = pdf.numPages; saveSoon(); $("#pgOf").textContent = "/ "+p.pages; }
       const first = await pdf.getPage(1); const vp = first.getViewport({scale:1});
       R.baseW = vp.width; R.baseH = vp.height;
+      loadOutline(pdf);
     } catch(e){
       $("#pages").innerHTML = `<div class="empty" style="background:var(--raised);max-width:460px">${DISK.on ? `The PDF file for this paper isn't in your library folder (it should be at pdfs/${esc(p.id)}.pdf).` : "The PDF file for this paper isn't in this browser any more (it may have been cleared)."} Your notes and history are safe. Attach the PDF again from the Details tab.</div>`;
       return;
@@ -659,6 +661,7 @@ function goPage(n, hlId, instant){
 }
 function setCurrent(n){
   if (!R) return; const p = getP(R.id);
+  markTocCurrent(n);
   R.current = n; p.lastPage = n;
   if (n > (p.maxPage||0)) p.maxPage = n;
   if (R.session && n > R.session.max) R.session.max = n;
@@ -720,8 +723,9 @@ window.addEventListener("focus", () => syncFromDisk());
 /* ---------------- panel ---------------- */
 function renderPanel(){
   if (!R) return; const p = getP(R.id), el = $("#panel"); if (!el) return;
-  const tab = S.ui.tab;
-  const tabs = [["notes","Notes",""],["highlights","Highlights",p.highlights.length],["sessions","Sessions",p.sessions.length],["details","Details",""]];
+  const hasToc = !!(R.outline && R.outline.length);
+  const tab = S.ui.tab === "contents" && !hasToc ? "notes" : S.ui.tab;   // until the outline loads (or if there is none)
+  const tabs = [["notes","Notes",""],["highlights","Highlights",p.highlights.length],...(hasToc ? [["contents","Contents",""]] : []),["sessions","Sessions",p.sessions.length],["details","Details",""]];
   let body = "";
   if (tab === "notes"){
     const mode = S.ui.nmode;
@@ -741,6 +745,8 @@ function renderPanel(){
           <textarea class="hl-cm" data-cm="${h.id}" rows="1" placeholder="Add a comment">${esc(h.comment)}</textarea>
           <div class="acts"><button class="pref" data-act="goto" data-v="${h.page}" data-h="${h.id}">p. ${h.page}</button><span>${HLC[h.color]}</span><button data-act="hl-del" data-v="${h.id}" style="margin-left:auto">Remove</button></div>
         </div></div>`).join("") : `<div class="empty">Select text in the paper and pick a colour to highlight it.</div>`}`;
+  } else if (tab === "contents"){
+    body = `<nav class="toc" aria-label="Contents of this paper">${R.outline.map((o, i) => `<button class="toc-i" data-act="toc" data-v="${i}" style="--d:${o.depth}"${o.dest == null ? " disabled" : ""}><span class="toc-t">${esc(o.title)}</span>${o.page ? `<span class="toc-p num">${o.page}</span>` : ""}</button>`).join("")}</nav>`;
   } else if (tab === "sessions"){
     const tot = p.sessions.reduce((a,s) => a+s.minutes, 0);
     body = `<div class="card"><h3>This session</h3><div id="liveSess" style="font-size:13px"></div>
@@ -1109,14 +1115,18 @@ async function drawLinks(page, vp, el, gen){
   if (layer.childElementCount) el.appendChild(layer);
 }
 // A destination is a page plus, usually, a position on it (XYZ left/top, or FitH/FitBH top), in PDF units.
+async function resolveDest(pdf, dest){
+  const exp = typeof dest === "string" ? await pdf.getDestination(dest) : dest;
+  if (!Array.isArray(exp) || exp[0] == null) throw new Error("no destination");
+  const n = (typeof exp[0] === "object" ? await pdf.getPageIndex(exp[0]) : exp[0]) + 1;
+  const kind = exp[1] && exp[1].name;
+  const top = kind === "XYZ" ? exp[3] : (kind === "FitH" || kind === "FitBH") ? exp[2] : kind === "FitR" ? exp[5] : null;
+  return {n, top};
+}
 async function followDest(dest, from){
   if (!R || !R.pdf) return;
   try {
-    const exp = typeof dest === "string" ? await R.pdf.getDestination(dest) : dest;
-    if (!Array.isArray(exp) || exp[0] == null) throw new Error("no destination");
-    const n = (typeof exp[0] === "object" ? await R.pdf.getPageIndex(exp[0]) : exp[0]) + 1;
-    const kind = exp[1] && exp[1].name;
-    const top = kind === "XYZ" ? exp[3] : (kind === "FitH" || kind === "FitBH") ? exp[2] : kind === "FitR" ? exp[5] : null;
+    const {n, top} = await resolveDest(R.pdf, dest);
     rememberSpot(from || R.current);
     await jumpTo(n, top);
   } catch(e){ toast("This link points to a place PDFDesk can't find in the file."); }
@@ -1146,6 +1156,28 @@ async function jumpTo(n, top){
   if (typeof top === "number"){ const pg = await R.pdf.getPage(n); y = Math.max(0, pg.getViewport({scale:R.scale}).convertToViewportPoint(0, top)[1]); }
   box.scrollTo({top: el.offsetTop + y - 24, behavior:"smooth"});
   setCurrent(n);
+}
+
+/* ---------------- contents (the PDF's outline) ---------------- */
+// Flattened in reading order with depth; each entry's page is resolved once so the current section can be marked.
+async function loadOutline(pdf){   // R.gen changes on every re-render, so check the document itself is still open
+  let items; try { items = await pdf.getOutline(); } catch(e){ return; }
+  if (!items || !items.length || !R || R.pdf !== pdf) return;
+  const flat = [];
+  const walk = (list, depth) => list.forEach(it => { flat.push({title:(it.title || "").trim() || "Untitled", dest:it.dest ?? null, depth:Math.min(depth, 4), page:0}); if (it.items && it.items.length) walk(it.items, depth + 1); });
+  walk(items, 0);
+  await Promise.all(flat.map(async o => { if (o.dest != null) try { o.page = (await resolveDest(pdf, o.dest)).n; } catch(e){ o.dest = null; } }));
+  if (!R || R.pdf !== pdf) return;
+  R.outline = flat;
+  const busy = document.activeElement && document.activeElement.closest && document.activeElement.closest("#panel") && /INPUT|TEXTAREA/.test(document.activeElement.tagName);
+  if (!busy) renderPanel();   // adds the Contents tab
+  markTocCurrent(R.current);
+}
+// The section you're in: the last entry that starts on or before the current page.
+function markTocCurrent(n){
+  if (!R || !R.outline) return;
+  let cur = -1; R.outline.forEach((o, i) => { if (o.page && o.page <= n) cur = i; });
+  document.querySelectorAll(".toc-i").forEach(b => { const on = +b.dataset.v === cur; b.classList.toggle("on", on); if (on) b.setAttribute("aria-current", "location"); else b.removeAttribute("aria-current"); });
 }
 
 /* ---------------- click a highlight on the page ---------------- */
@@ -1219,6 +1251,7 @@ document.addEventListener("click", async e => {
     case "left-add": addLeftovers(); break;
     case "side": toggleBar("side"); break;
     case "link-back": goBack(); break;
+    case "toc": { const o = R && R.outline && R.outline[+v]; if (o && o.dest != null) followDest(o.dest, R.current); break; }
     case "panel": toggleBar("panel"); break;
     case "open-folder": openFolder(); break;
     case "left-skip": $("#leftbar").hidden = true; try { localStorage.setItem(LEFTKEY, "skipped"); } catch(err){} break;
