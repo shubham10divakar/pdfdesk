@@ -425,7 +425,7 @@ const FEATURES = [
     "Extract to notes pulls every highlight into your notes with its page"]],
   ["Notes", [
     "Markdown notes for every paper, saved as you type",
-    "Write p. 12 and it becomes a link to page 12",
+    "Write p. 12 and it becomes a link to page 12; next to a quoted highlight it jumps to that highlight",
     "Cite the page you're on, insert highlights, copy everything as Markdown"]],
   ["Reading sessions", [
     "Each sitting is logged with the pages you covered",
@@ -765,7 +765,22 @@ function renderPanel(){
         <span id="rmWrap"><button class="btn sm ghost danger" data-act="remove">Remove from library</button></span></div></div>`;
   }
   el.innerHTML = `<div class="tabs" role="tablist">${tabs.map(([k,l,c]) => `<button class="tab ${tab===k?"on":""}" role="tab" aria-selected="${tab===k}" data-act="tab" data-v="${k}">${l}${c!==""?` <span class="ct">${c}</span>`:""}</button>`).join("")}</div><div class="pbody">${body}</div>`;
+  linkNotesToHighlights(p);
   updateLive();
+}
+
+// A "p. N" link in the notes points at the exact highlight when its line quotes text highlighted on page N
+// (what Insert highlights writes, or a line you typed that quotes one). Otherwise it just opens the page.
+const normTxt = s => String(s || "").toLowerCase().replace(/[\u201c\u201d\u2018\u2019"']/g, "").replace(/\s+/g, " ").trim();
+function linkNotesToHighlights(p){
+  const view = $("#mdView"); if (!view || !p.highlights.length) return;
+  view.querySelectorAll('.pref[data-act="goto"]').forEach(b => {
+    const n = +b.dataset.v, block = b.closest("p,li,blockquote,h1,h2,h3"); if (!block) return;
+    const line = normTxt(block.textContent.replace(b.textContent, ""));
+    if (line.length < 8) return;
+    const hit = p.highlights.find(h => { if (h.page !== n) return false; const t = normTxt(h.text); return t && (line.includes(t.slice(0, 80)) || (line.length >= 20 && t.includes(line))); });
+    if (hit){ b.dataset.h = hit.id; b.classList.add("to-hl"); b.style.setProperty("--c", `var(--hl-${hit.color})`); b.title = `Show this highlight on page ${n}`; }
+  });
 }
 
 function md(src){

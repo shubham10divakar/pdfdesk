@@ -4,6 +4,7 @@ All notable changes to PDFDesk. Versions follow [semantic versioning](https://se
 
 ## Unreleased
 
+- **Page links in notes find the exact highlight.** When a line in your notes quotes something you highlighted (as *Insert highlights* writes it), clicking its `p. N` jumps to that highlight and flashes it, instead of just the top of the page. Those links are underlined in the highlight's colour.
 - **Click a highlight in the panel to see it on the page.** The whole highlight is a link now, not just the small page number: it jumps to the page and flashes the highlight.
 - **Collapsible sidebar and notes panel.** Hide either one with the buttons at the ends of the reader toolbar (or next to the PDFDesk name), or press `[` and `]`. Pages re-fit to the new width and keep your place, so wide pages and slides get the whole window. The choice is remembered.
 

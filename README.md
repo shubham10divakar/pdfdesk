@@ -77,7 +77,7 @@ Select text on any page and pick a colour. Each colour has one job, so a page of
 <img src="https://raw.githubusercontent.com/shubham10divakar/pdfdesk/main/docs/assets/reader-notes.png" alt="PDFDesk notes panel with Markdown and page links next to the PDF" width="100%">
 
 - Write in **Markdown**: headings, bullets, quotes.
-- Type `p. 12` anywhere and it becomes a link to page 12.
+- Type `p. 12` anywhere and it becomes a link to page 12. When the line quotes one of your highlights, the link takes you to that exact highlight.
 - **Cite p. N** drops in a reference to the page you're on.
 - **Insert highlights** adds your highlights to the notes, each with its page.
 - **Copy** exports the notes as Markdown, ready for your paper, wiki or Obsidian vault.
