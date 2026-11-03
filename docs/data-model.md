@@ -1,6 +1,10 @@
 # Data model
 
-## Prototype JSON (`localStorage["researchdesk.v1"]`)
+## Prototype JSON
+
+The same paper objects are stored in two places depending on the mode (architecture.md § Where your data lives):
+- under `pdfdesk`: `papers` in `<library folder>/library.json`, wrapped as `{"format":"pdfdesk-library","formatVersion":1,"savedAt":"…","papers":[…]}`; `ui` in `localStorage["pdfdesk.ui.v1"]`;
+- on a static server: the whole object below in `localStorage["researchdesk.v1"]`.
 
 ```jsonc
 {

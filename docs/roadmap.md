@@ -6,7 +6,7 @@ Browser app in `prototype/`. Library, lifecycle, PDF reader, highlights, notes w
 ## Phase 1: make the prototype usable day to day
 Small changes, no build step.
 
-- [ ] **Library on disk under `pdfdesk`** (0.2.0): `~/PDFDesk/` with library.json + real PDF files + daily backups, so any port or browser shows the same library and clearing browser data deletes nothing. Browser libraries move in automatically. Spec: [disk-storage.md](disk-storage.md), decision D-010
+- [x] **Library on disk under `pdfdesk`** (0.2.0): `~/PDFDesk/` with library.json + real PDF files + daily backups, so any port or browser shows the same library and clearing browser data deletes nothing. Browser libraries move in automatically. Spec: [disk-storage.md](disk-storage.md), decision D-010
 - [x] **Export / import** the whole library as one `.zip` (library.json + PDFs + readable Markdown notes); import merges without deleting. Spec: [export-import.md](export-import.md). **Do this next:** it must ship in a 0.x release before 1.x, or 0.x users lose their library when they upgrade. It also rescues data stranded on another port or browser
 - [ ] **arXiv / DOI import**: paste an id, fill title, authors, year, venue (arXiv API, Crossref)
 - [ ] **Full-text search** across notes and highlights (simple in-memory index)
@@ -21,7 +21,7 @@ See decisions.md D-008. One package name and one command across both stacks.
 
 - [x] **0.1.0**: wheel bundles `prototype/` + stdlib server; `pdfdesk` opens it at http://localhost:5173
 - [ ] Publish 0.x to PyPI (MIT licence chosen; needs a PyPI account and an API token)
-- [ ] 0.x release with export/import (see Phase 1) before any 1.x
+- [ ] **0.2.0**: export/import + library on disk (built; publish to PyPI)
 - [ ] **1.x**: platform wheels carrying the Tauri binary (Windows x64, macOS x64 + arm64, Linux x64), built in CI; `pdfdesk` launches the app. Consider pytauri if the backend should be Python
 - [ ] 1.x first run: offer to import a 0.x export file
 - [ ] Optional native installers (`.msi`, `.dmg`) alongside pip

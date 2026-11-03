@@ -6,8 +6,8 @@
 index.html ─┬─ styles.css      tokens + layout
             ├─ pdf.js (vendor) rendering + text layer
             └─ app.js
-                 ├─ S (state)  ──save()──▶ localStorage "researchdesk.v1"
-                 ├─ idb        ──────────▶ IndexedDB "researchdesk"/files (PDF blobs)
+                 ├─ S (state)  ──save()──▶ disk: PUT /api/library  |  browser: localStorage "researchdesk.v1"
+                 ├─ idb        ──────────▶ disk: /api/pdf/<id>        |  browser: IndexedDB "researchdesk"/files
                  ├─ views      renderSide / homeHTML / libHTML / renderPanel
                  ├─ reader     R runtime: openReader → loadDoc → buildPages → renderPage
                  ├─ sessions   1s ticker, idle detection, endSession()
@@ -32,29 +32,37 @@ A 1-second ticker adds to `R.session.active` only if the tab is visible and ther
 
 ### Where your data lives
 
-Importing a PDF **copies** it into the browser. The original file is never moved, renamed or changed.
+There are two storage backends behind one interface (`save()` and the `idb` helper). `boot()` picks one at startup. Spec: [disk-storage.md](disk-storage.md), decision D-010.
 
-| What | Where | Key |
-|---|---|---|
-| The PDF copy | IndexedDB (the browser's database for large files) | database `researchdesk`, store `files`, keyed by paper id |
-| Everything else: title, authors, status, highlights, notes, sessions, bookmarks, UI state | localStorage | one JSON blob under `researchdesk.v1` (shape in data-model.md) |
-
-Import calls `idb.put(id, file)` (`importFiles` in `app.js`); opening a paper reads the blob back with `idb.get(id)`. That is why papers are still there after a restart.
-
-On disk this sits in the browser profile, not in a folder you can browse. For Chrome on Windows:
+**Under `pdfdesk` (0.2+): a folder on disk.** `boot()` finds the server's `/api/info`, switches `idb` to the disk implementation and loads `/api/library`.
 
 ```
-%LOCALAPPDATA%\Google\Chrome\User Data\Default\IndexedDB\http_localhost_5173.indexeddb.leveldb\
-%LOCALAPPDATA%\Google\Chrome\User Data\Default\IndexedDB\http_localhost_5173.indexeddb.blob\
+~/PDFDesk/                       (or --data-dir / $PDFDESK_DATA; printed at startup, shown on About)
+├─ library.json                  {"format":"pdfdesk-library","formatVersion":1,"savedAt":…,"papers":[…]}
+├─ pdfs/<paper-id>.pdf           real PDF files
+└─ backups/library-YYYY-MM-DD.json   first save of each day; last 14 kept
 ```
 
-Edge uses the same layout under `Microsoft\Edge\User Data`. These are the browser's internal database files, not `.pdf` files.
+```
+app.js                                  pdfdesk/cli.py (Handler)        pdfdesk/store.py (Store)
+save() ─ 300 ms ─▶ pushDisk() ─ PUT /api/library {baseRev, papers} ─▶ write(): rev check, backup, atomic replace
+  409 {rev, papers} ◀─ another window/port saved first ◀────────────── Conflict
+  └▶ merge3(base, theirs, mine) and save again
+idb.put/get/del ────────────── PUT/GET/DELETE /api/pdf/<id> ───────▶ write_pdf / read_pdf / delete_pdf
+focus or visible ─▶ syncFromDisk() ─ GET /api/info (rev changed?) ─ GET /api/library
+```
 
-What follows from this:
-- **Per browser and per address.** Chrome and Edge each have their own library; `localhost:5173` and `localhost:8080` are separate libraries.
-- **Clearing site data deletes the library,** PDF copies included. The originals are safe; highlights, notes and history are not.
-- **Each PDF is stored twice:** the original plus the browser's copy.
-- **Export to get it out.** Export/import (below) writes the whole library to one file you own. In 1.x, PDFs live in a normal library folder and everything else in a SQLite file (section 2).
+- **Same library everywhere on the machine.** Any port, `127.0.0.1` or `localhost`, any browser. Clearing browser data deletes nothing. Importing a PDF still copies it (into `pdfs/`); the original is never touched.
+- **`rev`** is `library.json`'s mtime and size, so two `pdfdesk` processes sharing a folder see each other's writes.
+- **`merge3`** merges against `DISK.base`, the last version this window read or wrote: a change made on only one side wins, removals are honoured unless the other side changed that item, and notes edited in both windows are kept one after the other under "Also written in another window". Nothing either window wrote is lost.
+- **UI state** (view, zoom, filters) stays in each browser's localStorage under `pdfdesk.ui.v1`.
+- **Server stopped while a page is open:** `#netbar` says so, and `pushDisk` retries every 4 s until it gets through.
+- **Moving 0.1.x libraries in:** with an empty folder, the browser's library (localStorage + IndexedDB at that origin) is moved in on first run, PDFs included, and the browser copy is left as it was. When the folder already has a library and the browser has papers it lacks, `#leftbar` offers to add them (remembered per browser under `pdfdesk.browserChecked`).
+- **Security:** the server binds to 127.0.0.1, refuses any `Host` other than `localhost:<port>`/`127.0.0.1:<port>` (DNS rebinding) and any foreign `Origin`, never answers CORS preflights, and only accepts ids matching `[A-Za-z0-9_-]{1,64}`.
+
+**On a plain static server** (`npm run dev`, `python -m http.server`, `file://`): browser storage, as in 0.1.x. Importing a PDF copies it into IndexedDB (database `researchdesk`, store `files`, keyed by paper id), and everything else is one JSON blob in localStorage under `researchdesk.v1`. That storage is per browser and per origin (`localhost:5173` and `localhost:8080` are separate libraries), clearing site data deletes it, and on disk it sits inside the browser profile, e.g. `%LOCALAPPDATA%\Google\Chrome\User Data\Default\IndexedDB\http_localhost_5173.indexeddb.*`. The storage keys keep the old ResearchDesk name (D-007).
+
+**Export / import** (below) works the same in both modes and is how a library moves to another computer.
 
 ### Export and import
 Full spec and the reasons behind it: [export-import.md](export-import.md). Code: the `export / import` section of `app.js`.
@@ -87,7 +95,7 @@ Import library / drop a .zip or .json
 - Tested end to end by `scripts/e2e/export-import.mjs` (headless Chrome, three isolated browser profiles).
 
 ### Known limitations
-- All state in one localStorage blob (~5 MB limit); fine for hundreds of papers, not thousands.
+- The whole paper list is saved as one JSON document on every change (disk) or one localStorage blob (browser, ~5 MB limit). Fine for hundreds of papers, not tens of thousands.
 - Highlight positions depend on the exact PDF file. Replacing a PDF drops highlight positions (text is kept).
 - No full-text search inside PDFs.
 - Single global `innerHTML` re-renders; acceptable at this size.

@@ -43,12 +43,26 @@ Build the Python package with `python -m build` (outputs to `dist/`).
 
 The download badges in README.md (pepy.tech, shields.io) show "not found" until the first PyPI upload, then fill in within about a day.
 
-## End-to-end test: export / import
-
-`scripts/e2e/export-import.mjs` drives headless Chrome over the DevTools protocol (Node 22+, no npm packages). It builds a library in one isolated browser profile, exports it, then imports into fresh profiles and checks 18 things: the dialog summary, PDFs rendering after import, no duplicates on re-import, notes merged once, replace, a deflate-compressed zip from another tool, and a bad file being refused.
+## Tests
 
 ```bash
-python -m pdfdesk --no-browser --port 5193
+python -m unittest discover -s tests     # library folder + HTTP API (no browser needed)
+npm run check                            # syntax of app.js
+```
+
+`scripts/e2e/disk-storage.mjs` checks the library on disk end to end (20 checks): it starts two `pdfdesk` processes sharing one folder plus the static server, and drives four isolated headless-Chrome profiles through first run, PDFs on disk, another port, two windows editing at once (including a real notes clash), the server stopping, and moving 0.1.x browser libraries in.
+
+```bash
+chrome --headless=new --remote-debugging-port=9337 --user-data-dir=<temp dir> about:blank
+node scripts/e2e/disk-storage.mjs 9337 <abs path>/sample-paper.pdf <abs empty work dir>   # from the repo root
+```
+
+## End-to-end test: export / import
+
+Runs against the static server (browser mode), since each profile needs its own library. `scripts/e2e/export-import.mjs` drives headless Chrome over the DevTools protocol (Node 22+, no npm packages). It builds a library in one isolated browser profile, exports it, then imports into fresh profiles and checks 18 things: the dialog summary, PDFs rendering after import, no duplicates on re-import, notes merged once, replace, a deflate-compressed zip from another tool, and a bad file being refused.
+
+```bash
+node scripts/serve.mjs 5193
 chrome --headless=new --remote-debugging-port=9336 --user-data-dir=<temp dir> about:blank
 # <work> needs: bad.json (any JSON that isn't an export); deflated.zip is optional (re-zip an export with ZIP_DEFLATED)
 node scripts/e2e/export-import.mjs 9336 http://localhost:5193/ <abs path>/sample-paper.pdf <abs work dir>
@@ -80,6 +94,7 @@ Alternative without Node: `cd prototype && python -m http.server 5173`.
 | Highlights | Select text → 4 colours with meanings (yellow key idea, green method/result, blue definition, pink question). Optional comment per highlight. Click to jump back |
 | Notes | Per-paper Markdown notes. `p. 12` becomes a link to that page. "Insert highlights" pulls highlights into notes with page refs. "Cite p. N" inserts the current page |
 | Sessions | Active reading time (pauses after 3 min idle or when the tab is hidden), page range covered, optional takeaway note. Auto-logged when you leave a paper |
+| Library on disk | Under `pdfdesk`, a folder with library.json, real PDFs and daily backups; any port or browser shows the same library; two windows merge without losing edits; 0.1.x browser libraries move in |
 | Export / import | One `.zip` with library.json, PDFs and Markdown notes; small `.json` backup without PDFs; import previews, then merges (never deletes) or replaces after a second confirmation; drop an export to import |
 | Overview | Stats, continue-reading list, 17-week reading heatmap with streak, up-next queue with target dates, daily revision queue of past highlights, reading log |
 
@@ -97,7 +112,9 @@ scripts/
   serve.mjs       zero-dependency static server (Node, for development)
   screenshots/    regenerate docs/assets/ (headless Chrome, see Screenshots)
 pdfdesk/
-  cli.py          the `pdfdesk` command: stdlib server + open browser
+  cli.py          the `pdfdesk` command: stdlib server, /api/ for the library, open browser
+  store.py        the library folder: library.json, pdfs/, backups (atomic writes, rev checks)
+tests/            unittest suite for the server and store
 pyproject.toml    package metadata; the wheel bundles prototype/ as pdfdesk/static/
 docs/
   assets/         screenshots used by README.md
@@ -113,14 +130,12 @@ CLAUDE.md         working context for AI coding assistants
 reference/        how v0.1 was made: original idea notes, design skill, single-file build
 ```
 
-## Where data is stored (prototype)
+## Where data is stored
 
-- `localStorage["researchdesk.v1"]` holds papers, notes, highlights, sessions and UI state as one JSON blob.
-- IndexedDB database `researchdesk`, store `files`, holds the PDF blobs keyed by paper id.
+- **Under `pdfdesk`:** the library folder (`~/PDFDesk`, or `--data-dir`, or `$PDFDESK_DATA`): `library.json`, `pdfs/<id>.pdf`, `backups/`. UI state stays in the browser (`localStorage["pdfdesk.ui.v1"]`).
+- **On a static server (`npm run dev`):** browser storage, as in 0.1.x: `localStorage["researchdesk.v1"]` plus IndexedDB `researchdesk`/`files`. The keys keep the old ResearchDesk name so 0.1.x libraries are found and moved in.
 
-The keys keep the project's old name (ResearchDesk) so existing libraries aren't lost.
-
-Imported PDFs are copies; the originals are never touched. Clearing site data for `localhost:5173` wipes the library. Details, including where this sits on disk: [docs/architecture.md § Where your data lives](docs/architecture.md#where-your-data-lives). Export/import gets it out: [docs/export-import.md](docs/export-import.md).
+Full details, including the API, merging and security: [docs/architecture.md § Where your data lives](docs/architecture.md#where-your-data-lives) and [docs/disk-storage.md](docs/disk-storage.md). Export/import: [docs/export-import.md](docs/export-import.md).
 
 ## License
 

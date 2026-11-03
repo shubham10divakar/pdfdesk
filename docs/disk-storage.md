@@ -1,6 +1,6 @@
 # Library on disk (spec, 0.2.0)
 
-Status: **in progress**. Decision: decisions.md D-010.
+Status: **built** for 0.2.0. Decision: decisions.md D-010. How it fits together: [architecture.md § Where your data lives](architecture.md#where-your-data-lives).
 
 ## Problem
 
@@ -45,7 +45,7 @@ Default `~/PDFDesk` (on Windows `C:\Users\<you>\PDFDesk`). Change it with `pdfde
 - **Storage mode** is chosen at startup: if `GET api/info` answers, the app uses the disk; otherwise (`npm run dev`, any static server, `file://`) it keeps using browser storage exactly as before. `prototype/` stays openable from a static server.
 - **The storage layer is swapped, not the app.** `save()` and the `idb` helper (`put`, `putStrict`, `get`, `del`) get a disk implementation; everything above them, including export/import, is unchanged.
 - **Saving:** papers are sent at most every 300 ms and only when they changed. UI state goes to localStorage as before.
-- **Another tab or port saved first** (`409`): the app merges its papers with the newer ones (same rules as import: union of highlights, sessions, tags and bookmarks by id; differing notes kept both ways; newer reading position wins) and saves again. Nothing either window wrote is lost. Known gap: a paper removed in one window can come back if another window still had it.
+- **Another tab or port saved first** (`409`): the app does a three-way merge against the last version it saw (`merge3`): a change made on only one side wins, items removed on one side stay removed unless the other side changed them, and notes edited in both windows are kept one after the other. Then it saves again. Nothing either window wrote is lost.
 - **Coming back to a window** (focus or visibility): if the library changed on disk and this window has no unsaved changes, it reloads quietly.
 - **Server stopped while the app is open:** a banner says changes aren't being saved and to run `pdfdesk` again. Saving retries every few seconds and the banner clears once it succeeds.
 
@@ -62,5 +62,7 @@ Default `~/PDFDesk` (on Windows `C:\Users\<you>\PDFDesk`). Change it with `pdfde
 2. A second `pdfdesk` on port B with the same folder, in a fresh browser profile: same library, and the PDF renders.
 3. Two windows edit different papers at the same time: both edits are on disk.
 4. Migration: a 0.1.x browser library on an origin moves into an empty folder on first run.
-5. Host header from another name is refused (`403`).
-The export/import e2e test keeps running against the static server (browser mode).
+5. The server stopping while a page is open shows a warning, and saving resumes when it's back.
+6. A browser library on another port is offered to an existing folder and merged on request.
+
+The API itself (conflicts, atomic writes, ids, Host/Origin checks, two processes on one folder) is covered by `tests/test_server.py`. The export/import e2e test keeps running against the static server (browser mode).

@@ -16,7 +16,7 @@ const fmtMin = m => m >= 60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m}m`;
 const rel = t => { if(!t) return "Never"; const d = Math.round((day0()-day0(t))/DAY); return d===0?"Today":d===1?"Yesterday":d<7?`${d} days ago`:fmtDate(t); };
 const isoDay = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
 
-const VERSION = "0.1.1"; // keep in step with pdfdesk/__init__.py
+const VERSION = "0.2.0"; // keep in step with pdfdesk/__init__.py
 const HEART = '<svg class="heart" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14s-5.5-3.4-5.5-7.3C2.5 4.6 4 3 5.9 3 7 3 7.6 3.6 8 4.3 8.4 3.6 9 3 10.1 3 12 3 13.5 4.6 13.5 6.7 13.5 10.6 8 14 8 14z"/></svg>';
 
 const STATUSES = [["inbox","Inbox"],["planned","Planned"],["reading","Reading"],["paused","Paused"],["completed","Completed"],["revisit","Revisit"]];
@@ -26,14 +26,107 @@ const pill = s => `<span class="pill" style="--c:${scol(s)}">${SLABEL[s]}</span>
 const HLC = {yellow:"Key idea", green:"Method / result", blue:"Definition", pink:"Question"};
 
 /* ---------------- storage ---------------- */
-const KEY = "researchdesk.v1";
+// Two backends behind one interface (spec: docs/disk-storage.md):
+//  disk     under `pdfdesk`: library.json + pdfs/ in the library folder, through /api/ on the local server
+//  browser  on a plain static server (npm run dev, file://): localStorage + IndexedDB, as in 0.1.x
+const KEY = "researchdesk.v1", UIKEY = "pdfdesk.ui.v1", LEFTKEY = "pdfdesk.browserChecked";
 let S;
+const DISK = {on:false, dir:"", rev:"0", base:new Map(), sent:"", timer:0, busy:false, again:false, down:false};
 function load(){ try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; } catch(e){ return null; } }
-function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+function save(){
+  if (!DISK.on){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} return; }
+  try { localStorage.setItem(UIKEY, JSON.stringify(S.ui)); } catch(e){}
+  clearTimeout(DISK.timer); DISK.timer = setTimeout(pushDisk, 300);
+}
 let saveT; function saveSoon(){ clearTimeout(saveT); saveT = setTimeout(save, 500); }
 
+// The last version this window read from or wrote to disk, per paper. A conflict merges against it.
+const setBase = papers => { DISK.base = new Map(papers.map(p => [p.id, JSON.stringify(p)])); };
+const diskDirty = () => DISK.on && JSON.stringify(S.papers) !== DISK.sent;
+function netDown(on){ DISK.down = on; const b = $("#netbar"); if (b) b.hidden = !on; }
+
+async function pushDisk(){
+  if (!DISK.on) return;
+  if (DISK.busy){ DISK.again = true; return; }
+  const body = JSON.stringify(S.papers);
+  if (body === DISK.sent && !DISK.down) return;
+  DISK.busy = true;
+  try {
+    const r = await fetch("api/library", {method:"PUT", headers:{"Content-Type":"application/json"}, body:`{"baseRev":${JSON.stringify(DISK.rev)},"papers":${body}}`});
+    if (r.status === 409){ // another window or port saved first: merge both sides, then save again
+      const cur = await r.json(), theirs = cur.papers || [];
+      S.papers = merge3(DISK.base, theirs, S.papers);
+      DISK.rev = cur.rev; DISK.sent = JSON.stringify(theirs); setBase(theirs); DISK.again = true;
+      refreshViews();
+    } else if (r.ok){
+      DISK.rev = (await r.json()).rev; DISK.sent = body; setBase(JSON.parse(body)); netDown(false);
+    } else throw new Error(`HTTP ${r.status}`);
+  } catch(e){
+    netDown(true); DISK.busy = false; clearTimeout(DISK.timer); DISK.timer = setTimeout(pushDisk, 4000); return;
+  }
+  DISK.busy = false;
+  if (DISK.again){ DISK.again = false; pushDisk(); }
+}
+function flushDisk(){ // page is closing: best effort, keepalive only allows small bodies
+  if (!diskDirty()) return;
+  const body = `{"baseRev":${JSON.stringify(DISK.rev)},"papers":${JSON.stringify(S.papers)}}`;
+  try { fetch("api/library", {method:"PUT", headers:{"Content-Type":"application/json"}, body, keepalive:body.length < 60000}); } catch(e){}
+}
+async function syncFromDisk(){ // coming back to this window: pick up changes made elsewhere
+  if (!DISK.on || DISK.busy) return;
+  if (diskDirty()) return pushDisk();
+  try {
+    const info = await (await fetch("api/info", {cache:"no-store"})).json();
+    netDown(false);
+    if (info.rev === DISK.rev) return;
+    const L = await (await fetch("api/library", {cache:"no-store"})).json();
+    if (diskDirty()) return pushDisk();
+    S.papers = L.papers || []; DISK.rev = L.rev; DISK.sent = JSON.stringify(S.papers); setBase(S.papers);
+    refreshViews();
+  } catch(e){ netDown(true); }
+}
+function refreshViews(){
+  if (R && !getP(R.id)){ if (R.obs) R.obs.disconnect(); R = null; hidePop(); S.ui.view = "home"; }
+  if (S.ui.view === "reader" && R){ renderSide(); if (document.activeElement?.id !== "noteTa") renderPanel(); }
+  else renderAll();
+}
+
+// Three-way merge of the paper list: base = last version this window saw, theirs = on disk now, mine = this window.
+// A change made on only one side wins; edits on both sides are kept (notes side by side). Nothing written is lost.
+const jsn = x => JSON.stringify(x);
+function merge3(base, theirs, mine){
+  const M = new Map(mine.map(p => [p.id, p])), T = new Set(theirs.map(p => p.id)), out = [];
+  for (const t of theirs){
+    const m = M.get(t.id), b = base.get(t.id);
+    if (!m){ if (!b || b !== jsn(t)) out.push(t); continue; }        // removed here: drop it, unless changed elsewhere
+    if (!b){ const o = JSON.parse(jsn(t)); mergeInto(o, cleanPaper(m), isoDay(Date.now())); out.push(o); continue; }
+    out.push(mergePaper3(JSON.parse(b), t, m));
+  }
+  for (const m of mine) if (!T.has(m.id) && (!base.has(m.id) || base.get(m.id) !== jsn(m))) out.unshift(m); // new here, or changed here after being removed elsewhere
+  return out;
+}
+function mergeList3(b, t, m){ // arrays of {id}
+  const B = new Map(b.map(x => [x.id, jsn(x)])), M = new Map(m.map(x => [x.id, x])), T = new Set(t.map(x => x.id)), out = [];
+  for (const x of t){ const y = M.get(x.id); if (!y){ if (!B.has(x.id) || B.get(x.id) !== jsn(x)) out.push(x); } else out.push(B.get(x.id) !== jsn(y) ? y : x); }
+  for (const y of m) if (!T.has(y.id) && !B.has(y.id)) out.push(y);
+  return out;
+}
+function mergeSet3(b, t, m){ const B = new Set(b), M = new Set(m), out = t.filter(x => M.has(x) || !B.has(x)); m.forEach(x => { if (!B.has(x) && !out.includes(x)) out.push(x); }); return out; }
+function mergePaper3(b, t, m){
+  const out = {...t}, lists = ["highlights", "sessions", "bookmarks", "tags", "notes"];
+  for (const k of new Set([...Object.keys(t), ...Object.keys(m)])) if (!lists.includes(k) && jsn(m[k]) !== jsn(b[k])) out[k] = m[k];
+  out.highlights = mergeList3(b.highlights || [], t.highlights || [], m.highlights || []);
+  out.sessions = mergeList3(b.sessions || [], t.sessions || [], m.sessions || []).sort((x, y) => y.date - x.date);
+  out.tags = mergeSet3(b.tags || [], t.tags || [], m.tags || []);
+  out.bookmarks = mergeSet3(b.bookmarks || [], t.bookmarks || [], m.bookmarks || []).sort((x, y) => x - y);
+  const bn = b.notes || "", tn = t.notes || "", mn = m.notes || "";
+  out.notes = mn === bn ? tn : tn === bn ? mn : tn.includes(mn) ? tn : mn.includes(tn) ? mn
+    : `${tn}\n\n--- Also written in another window, ${fmtDay(Date.now())} ${fmtTime(Date.now())} ---\n\n${mn}`;
+  return out;
+}
+
 const memFiles = new Map();
-const idb = (() => {
+const bidb = (() => {
   let dbp;
   const open = () => dbp || (dbp = new Promise((res, rej) => {
     try { const r = indexedDB.open("researchdesk", 1);
@@ -49,6 +142,17 @@ const idb = (() => {
     del: k => { memFiles.delete(k); return tx("readwrite", s => s.delete(k)).catch(()=>{}); }
   };
 })();
+async function diskPut(k, v){
+  const r = await fetch(`api/pdf/${encodeURIComponent(k)}`, {method:"PUT", headers:{"Content-Type":"application/pdf"}, body:v});
+  if (!r.ok) throw new Error(`PDF not saved (HTTP ${r.status})`);
+}
+const diskFiles = {
+  put: (k,v) => { memFiles.set(k,v); return diskPut(k,v).catch(() => netDown(true)); },
+  putStrict: (k,v) => diskPut(k,v),
+  get: async k => { if (memFiles.has(k)) return memFiles.get(k); try { const r = await fetch(`api/pdf/${encodeURIComponent(k)}`); return r.ok ? await r.blob() : null; } catch(e){ return null; } },
+  del: k => { memFiles.delete(k); return fetch(`api/pdf/${encodeURIComponent(k)}`, {method:"DELETE"}).catch(()=>{}); }
+};
+let idb = bidb; // switched to diskFiles in boot() when running under pdfdesk
 
 /* ---------------- example library ---------------- */
 function seed(){
@@ -107,9 +211,6 @@ function seed(){
   return {papers, ui:{view:"home", filter:"all", tab:"notes", nmode:"preview", hlFilter:"all", zoom:1, q:""}};
 }
 
-S = load() || seed();
-S.ui = Object.assign({view:"home", filter:"all", tab:"notes", nmode:"preview", hlFilter:"all", zoom:1, q:""}, S.ui||{});
-if (S.ui.view === "reader") S.ui.view = "home";
 const getP = id => S.papers.find(p => p.id === id);
 const progress = p => p.pages ? Math.min(1, (p.maxPage||0)/p.pages) : 0;
 
@@ -144,7 +245,7 @@ function renderSide(){
     </div>
     <div class="side-foot">
       ${hasEx ? `<span>Showing example papers so you can try things out.</span><button data-act="clear-examples">Remove examples</button>` : ""}
-      <span>PDFs, notes and history stay in this browser.</span>
+      ${DISK.on ? `<span>Saved on this computer in <span class="path" title="${esc(DISK.dir)}">${esc(DISK.dir)}</span></span>` : `<span>PDFs, notes and history stay in this browser.</span>`}
       <div class="side-io"><button data-act="exp">Export library</button><button data-act="imp">Import library</button></div>
     </div>`;
 }
@@ -311,7 +412,8 @@ const FEATURES = [
     "Import merges into your library and never deletes what you wrote, or replaces it after asking",
     "Drop an export file on the window to import it"]],
   ["Private and offline", [
-    "PDFs, notes and history stay on your computer; no account, no cloud, no tracking",
+    "Your library is a folder on your computer (PDFDesk in your home folder) with real PDF files and daily backups",
+    "Any browser or port on this computer shows the same library; no account, no cloud, no tracking",
     "The PDF engine and fonts are built in, so it works without internet",
     "Dark mode follows your system setting"]],
 ];
@@ -346,7 +448,7 @@ function aboutHTML(){
 
     <section class="data" aria-labelledby="dt-h">
       <div><h2 id="dt-h">Your data</h2>
-      <p>Your library lives in this browser at this address. Adding a PDF saves a copy here; your original file is never touched. Export to back it up or move it to another browser or computer.${S.ui.lastExport ? ` Last export: ${esc(fmtDay(S.ui.lastExport))}.` : " You haven't exported yet."}</p></div>
+      <p>${DISK.on ? `Your library is a folder on this computer: <span class="path">${esc(DISK.dir)}</span>. It holds library.json and your PDFs as normal files, with a daily backup. Every browser and port on this computer shows the same library, and adding a PDF never touches your original file. Export to move the library to another computer or keep an extra copy.` : `Your library lives in this browser at this address. Adding a PDF saves a copy here; your original file is never touched. Export to back it up or move it to another browser or computer. Run PDFDesk with the pdfdesk command to keep the library in a folder on disk instead.`}${S.ui.lastExport ? ` Last export: ${esc(fmtDay(S.ui.lastExport))}.` : " You haven't exported yet."}</p></div>
       <div class="fb-acts">
         <button class="btn primary" data-act="exp">Export library</button>
         <button class="btn" data-act="exp-lite">Export without PDFs</button>
@@ -558,6 +660,7 @@ function updateLive(){
 function endSession(note){
   if (!R || !R.session) return null;
   const s = R.session, p = getP(R.id); R.session = null;
+  if (!p) return null;
   const min = Math.round(s.active/60000);
   if (min >= 1 || s.max !== s.from || note){
     const rec = {id:uid(), date:s.start, from:s.from, to:Math.max(s.from, s.max), minutes:Math.max(1,min), note:note||""};
@@ -572,7 +675,9 @@ function closeReader(){
   try { R.pdf && R.pdf.destroy(); } catch(e){}
   R = null; hidePop(); save();
 }
-window.addEventListener("pagehide", () => { if (R) { endSession(); if (R) R.session = null; } save(); });
+window.addEventListener("pagehide", () => { if (R) { endSession(); if (R) R.session = null; } save(); flushDisk(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") syncFromDisk(); });
+window.addEventListener("focus", () => syncFromDisk());
 
 /* ---------------- panel ---------------- */
 function renderPanel(){
@@ -890,7 +995,7 @@ function closeModal(){ const m = $("#modal"); m.hidden = true; m.innerHTML = "";
 function mergeInto(cur, inc, stamp){
   const byId = (a, b) => { const seen = new Set(a.map(x => x.id)); return a.concat(b.filter(x => !seen.has(x.id))); };
   cur.highlights = byId(cur.highlights, inc.highlights);
-  cur.sessions = byId(cur.sessions, inc.sessions).sort((a, b) => a.date - b.date);
+  cur.sessions = byId(cur.sessions, inc.sessions).sort((a, b) => b.date - a.date); // newest first, as endSession() keeps them
   cur.bookmarks = [...new Set([...cur.bookmarks, ...inc.bookmarks])].sort((a, b) => a - b);
   cur.tags = [...new Set([...cur.tags, ...inc.tags])];
   const a = cur.notes.trim(), b = inc.notes.trim();
@@ -927,7 +1032,7 @@ const isExportFile = f => /\.(zip|json)$/i.test(f.name) || /zip|json/.test(f.typ
 
 /* ---------------- events ---------------- */
 document.addEventListener("click", async e => {
-  const t = e.target.closest("[data-act]"); if (!t) return;
+  const t = e.target.closest("[data-act]"); if (!t || !S) return;
   const a = t.dataset.act, v = t.dataset.v;
   const p = R ? getP(R.id) : null;
   switch (a){
@@ -941,6 +1046,8 @@ document.addEventListener("click", async e => {
     case "imp-replace-go": applyImport(true); break;
     case "imp-replace-export": { const ok = await exportLibrary(true); if (ok) applyImport(true); break; }
     case "modal-close": closeModal(); break;
+    case "left-add": addLeftovers(); break;
+    case "left-skip": $("#leftbar").hidden = true; try { localStorage.setItem(LEFTKEY, "skipped"); } catch(err){} break;
     case "filter": closeReader(); S.ui.view = "library"; S.ui.filter = v; save(); renderAll(); break;
     case "open": openReader(v); break;
     case "open-hl": { const pp = getP(v), h = pp && pp.highlights.find(x => x.id === t.dataset.h); S.ui.tab = "highlights"; openReader(v, h ? {page:h.page, hl:h.id} : null); break; }
@@ -1007,5 +1114,58 @@ window.addEventListener("dragleave", () => { dragN = Math.max(0, dragN-1); if (!
 window.addEventListener("dragover", e => e.preventDefault());
 window.addEventListener("drop", e => { e.preventDefault(); dragN = 0; $("#drop").hidden = true; if (e.dataTransfer?.files?.length) importFiles(e.dataTransfer.files); });
 
-renderAll();
+/* ---------------- boot ---------------- */
+let LEFT = null; // papers in this browser's 0.1.x storage that aren't in the library folder
+function checkLeftovers(){
+  let done = null; try { done = localStorage.getItem(LEFTKEY); } catch(e){}
+  if (done) return;
+  const old = load(), extra = (old && Array.isArray(old.papers) ? old.papers : []).filter(p => p && p.id && !p.sample && !getP(p.id));
+  if (!extra.length){ try { localStorage.setItem(LEFTKEY, "1"); } catch(e){} return; }
+  LEFT = extra;
+  const n = extra.length, one = n === 1, b = $("#leftbar");
+  b.innerHTML = `<span>This browser has <b class="num">${n}</b> ${one ? "paper" : "papers"} from an older PDFDesk that ${one ? "isn't" : "aren't"} in your library folder.</span>
+    <button class="btn sm primary" data-act="left-add">Add ${one ? "it" : "them"} to my library</button><button class="btn sm ghost" data-act="left-skip">Not now</button>`;
+  b.hidden = false;
+}
+async function addLeftovers(){
+  const extra = LEFT || []; $("#leftbar").hidden = true; let added = 0;
+  for (const raw of extra){
+    if (getP(raw.id)) continue;
+    const p = cleanPaper(raw);
+    if (p.hasFile){ const blob = await bidb.get(p.id); if (blob){ try { await diskPut(p.id, blob); } catch(e){ p.hasFile = false; } } else p.hasFile = false; }
+    S.papers.unshift(p); added++;
+  }
+  try { localStorage.setItem(LEFTKEY, "1"); } catch(e){}
+  save(); renderAll(); toast(`Added ${added} ${added === 1 ? "paper" : "papers"} from this browser to your library folder`);
+}
+
+async function boot(){
+  let info = null, note = "";
+  try { const r = await fetch("api/info", {cache:"no-store"}); if (r.ok) info = await r.json(); } catch(e){}
+  if (info && info.app === "pdfdesk"){
+    DISK.on = true; DISK.dir = info.dataDir; idb = diskFiles;
+    let ui = null; try { ui = JSON.parse(localStorage.getItem(UIKEY)); } catch(e){}
+    const old = load(), L = await (await fetch("api/library", {cache:"no-store"})).json();
+    if (L.papers){ S = {papers:L.papers, ui:ui || (old && old.ui) || {}}; DISK.rev = L.rev; DISK.sent = JSON.stringify(L.papers); setBase(L.papers); }
+    else { // empty folder: move this browser's 0.1.x library in, or start with the examples
+      const start = old && Array.isArray(old.papers) && old.papers.length ? old : seed();
+      S = {papers:start.papers, ui:ui || start.ui || {}}; DISK.rev = L.rev; setBase([]);
+      for (const p of S.papers){
+        if (!p.hasFile) continue;
+        const blob = await bidb.get(p.id);
+        if (blob){ try { await diskPut(p.id, blob); } catch(e){ p.hasFile = false; } } else p.hasFile = false;
+      }
+      await pushDisk();
+      const own = S.papers.filter(p => !p.sample).length;
+      if (own) note = `Moved your library (${own} ${own === 1 ? "paper" : "papers"}) into ${DISK.dir}`;
+      try { localStorage.setItem(LEFTKEY, "1"); } catch(e){}
+    }
+  } else S = load() || seed();
+  S.ui = Object.assign({view:"home", filter:"all", tab:"notes", nmode:"preview", hlFilter:"all", zoom:1, q:""}, S.ui || {});
+  if (S.ui.view === "reader") S.ui.view = "home";
+  renderAll();
+  if (note) toast(note);
+  if (DISK.on) checkLeftovers();
+}
+boot();
 })();

@@ -145,7 +145,8 @@ Dark mode follows your system setting. Typography is set for long reading sessio
 
 ## Private by design
 
-- 🔒 **Local-first.** Your PDFs, notes and history stay on your computer. No account, no cloud, no tracking.
+- 🔒 **Local-first.** Your library is a normal folder on your computer: real PDF files, a `library.json`, and a backup every day. No account, no cloud, no tracking.
+- 🗂️ **One library, everywhere on your machine.** Any browser and any port shows the same library, and clearing browser data deletes nothing.
 - ✈️ **Works offline.** The PDF engine and fonts ship inside the package. Nothing loads from the internet.
 - 🪶 **Lightweight.** One small package with **zero Python dependencies**. If you have Python 3.9+, you can run it.
 
@@ -159,14 +160,15 @@ pdfdesk
 PDFDesk opens in your browser at **http://localhost:5173**. A few example papers are loaded so you can explore. Remove them from the sidebar when you're ready, then drop in your own PDFs.
 
 ```bash
-pdfdesk --no-browser      # start without opening a browser window
-pdfdesk --port 8080       # use another port
+pdfdesk --no-browser            # start without opening a browser window
+pdfdesk --port 8080             # use another port (same library)
+pdfdesk --data-dir D:\Papers    # keep the library somewhere else
 pdfdesk --version
 ```
 
 Upgrade any time with `pip install -U pdfdesk`.
 
-> **Good to know:** adding a PDF saves a copy inside PDFDesk; your original file stays where it is, untouched. In this version your library is stored in the browser you open PDFDesk in, for the address `localhost:5173`. Keep using the same browser and the default port and your library will be there every time. Uninstalling the package doesn't delete it. Use **Export library** to keep a backup.
+> **Where your library lives:** in a folder called `PDFDesk` in your home folder (`pdfdesk` prints the exact path). It holds `library.json`, your PDFs in `pdfs/`, and daily backups in `backups/`. Adding a PDF saves a copy there; your original file stays where it is. Uninstalling the package doesn't touch the folder. Use **Export library** to move it to another computer.
 
 ## What's coming
 
