@@ -723,6 +723,7 @@ window.addEventListener("focus", () => syncFromDisk());
 /* ---------------- panel ---------------- */
 function renderPanel(){
   if (!R) return; const p = getP(R.id), el = $("#panel"); if (!el) return;
+  const keep = el.dataset.tab === S.ui.tab ? (el.querySelector(".pbody")?.scrollTop || 0) : 0;
   const hasToc = !!(R.outline && R.outline.length);
   const tab = S.ui.tab === "contents" && !hasToc ? "notes" : S.ui.tab;   // until the outline loads (or if there is none)
   const tabs = [["notes","Notes",""],["highlights","Highlights",p.highlights.length],...(hasToc ? [["contents","Contents",""]] : []),["sessions","Sessions",p.sessions.length],["details","Details",""]];
@@ -753,9 +754,7 @@ function renderPanel(){
         <label class="lbl" for="sessNote">What did you get out of it?<textarea class="in" id="sessNote" placeholder="e.g. Understood why scores are scaled by √d_k"></textarea></label>
         <div class="row"><button class="btn sm primary" data-act="log-session">Log session</button><span class="hint">A session is also logged automatically when you leave the paper.</span></div></div>
       <div class="row" style="justify-content:space-between"><b style="font-size:13px">History</b><span class="hint num">${p.sessions.length} sessions · ${fmtMin(tot)}</span></div>
-      <div>${p.sessions.length ? p.sessions.map(s => `<div class="sess"><span class="dt">${fmtDate(s.date)}<br>${fmtTime(s.date)}</span>
-          <span class="main-l">Pages <button class="pref" data-act="goto" data-v="${s.from}">${s.from}–${s.to}</button> · <span class="num">${s.minutes}</span> min</span>
-          ${s.note?`<span class="nt">${esc(s.note)}</span>`:""}</div>`).join("") : `<div class="empty">No sessions yet. Keep reading; time and pages are tracked while this tab is active.</div>`}</div>`;
+      <div>${p.sessions.length ? p.sessions.map(s => sessionRow(p, s)).join("") : `<div class="empty">No sessions yet. Keep reading; time and pages are tracked while this tab is active.</div>`}</div>`;
   } else {
     body = `<div class="card"><h3>Status</h3><div class="status-grid">${STATUSES.map(([k,l]) => `<button class="${p.status===k?"on":""}" style="--c:${scol(k)}" data-act="status" data-v="${k}"><span class="dot" style="--c:${scol(k)}"></span>${l}</button>`).join("")}</div>
         <dl class="kv"><dt>Progress</dt><dd>${p.maxPage||0} / ${p.pages||"?"} pages (${Math.round(progress(p)*100)}%)</dd><dt>Last read</dt><dd>${rel(p.lastOpened)}</dd><dt>Added</dt><dd>${fmtDate(p.addedAt)}</dd></dl></div>
@@ -775,6 +774,7 @@ function renderPanel(){
         <span id="rmWrap"><button class="btn sm ghost danger" data-act="remove">Remove from library</button></span></div></div>`;
   }
   el.innerHTML = `<div class="tabs" role="tablist">${tabs.map(([k,l,c]) => `<button class="tab ${tab===k?"on":""}" role="tab" aria-selected="${tab===k}" data-act="tab" data-v="${k}">${l}${c!==""?` <span class="ct">${c}</span>`:""}</button>`).join("")}</div><div class="pbody">${body}</div>`;
+  el.dataset.tab = S.ui.tab; if (keep) el.querySelector(".pbody").scrollTop = keep;
   linkNotesToHighlights(p);
   updateLive();
 }
@@ -1158,6 +1158,31 @@ async function jumpTo(n, top){
   setCurrent(n);
 }
 
+/* ---------------- sessions: edit and delete ---------------- */
+function sessionRow(p, s){
+  const when = `<span class="dt">${fmtDate(s.date)}<br>${fmtTime(s.date)}</span>`;
+  if (R.editSess === s.id) return `<div class="sess editing">${when}<div class="sess-form">
+      <div class="row"><label class="lbl" for="seFrom">Pages <span class="row" style="gap:4px"><input class="in num" id="seFrom" type="number" min="1" max="${p.pages || 9999}" value="${s.from}" style="width:64px">–<input class="in num" id="seTo" type="number" min="1" max="${p.pages || 9999}" value="${s.to}" style="width:64px"></span></label>
+        <label class="lbl" for="seMin">Minutes<input class="in num" id="seMin" type="number" min="1" max="600" value="${s.minutes}" style="width:70px"></label></div>
+      <label class="lbl" for="seNote">Takeaway<textarea class="in" id="seNote" rows="2">${esc(s.note)}</textarea></label>
+      <div class="row"><button class="btn sm primary" data-act="sess-save" data-v="${s.id}">Save</button><button class="btn sm ghost" data-act="sess-cancel">Cancel</button><span class="hint" id="seErr" role="alert"></span></div>
+    </div></div>`;
+  const acts = R.delSess === s.id
+    ? `<span class="sess-acts confirm">Delete this session? <button class="btn sm danger" data-act="sess-del-yes" data-v="${s.id}">Delete</button><button class="btn sm ghost" data-act="sess-del-no">Keep</button></span>`
+    : `<span class="sess-acts"><button data-act="sess-edit" data-v="${s.id}">Edit</button><button data-act="sess-del" data-v="${s.id}">Delete</button></span>`;
+  return `<div class="sess">${when}
+      <span class="main-l">Pages <button class="pref" data-act="goto" data-v="${s.from}">${s.from}–${s.to}</button> · <span class="num">${s.minutes}</span> min</span>
+      ${s.note ? `<span class="nt">${esc(s.note)}</span>` : ""}${acts}</div>`;
+}
+function saveSession(p, sid){
+  const s = p.sessions.find(x => x.id === sid); if (!s) return;
+  const from = Math.round(+$("#seFrom").value), to = Math.round(+$("#seTo").value), min = Math.round(+$("#seMin").value), max = p.pages || 9999;
+  const err = !(from >= 1 && from <= max) ? `Pages start between 1 and ${max}.` : !(to >= from && to <= max) ? `The last page is between ${from} and ${max}.` : !(min >= 1 && min <= 600) ? "Minutes are between 1 and 600." : "";
+  if (err){ $("#seErr").textContent = err; return; }
+  Object.assign(s, {from, to, minutes:min, note:$("#seNote").value.trim()});
+  R.editSess = null; save(); renderPanel(); toast("Session updated");
+}
+
 /* ---------------- contents (the PDF's outline) ---------------- */
 // Flattened in reading order with depth; each entry's page is resolved once so the current section can be marked.
 async function loadOutline(pdf){   // R.gen changes on every re-render, so check the document itself is still open
@@ -1251,6 +1276,12 @@ document.addEventListener("click", async e => {
     case "left-add": addLeftovers(); break;
     case "side": toggleBar("side"); break;
     case "link-back": goBack(); break;
+    case "sess-edit": R.editSess = v; R.delSess = null; renderPanel(); $("#seFrom")?.focus(); break;
+    case "sess-cancel": R.editSess = null; renderPanel(); break;
+    case "sess-save": saveSession(p, v); break;
+    case "sess-del": R.delSess = v; R.editSess = null; renderPanel(); break;
+    case "sess-del-no": R.delSess = null; renderPanel(); break;
+    case "sess-del-yes": { const s = p.sessions.find(x => x.id === v); p.sessions = p.sessions.filter(x => x.id !== v); R.delSess = null; save(); renderPanel(); toast(s ? `Deleted the session from ${fmtDate(s.date)} (${s.minutes} min)` : "Session deleted"); break; }
     case "toc": { const o = R && R.outline && R.outline[+v]; if (o && o.dest != null) followDest(o.dest, R.current); break; }
     case "panel": toggleBar("panel"); break;
     case "open-folder": openFolder(); break;
@@ -1298,6 +1329,10 @@ document.addEventListener("keydown", e => {
   const t = e.target;
   if (e.key === "Escape" && !$("#modal").hidden){ closeModal(); return; }
   if (e.altKey && e.key === "ArrowLeft" && R && R.hist.length){ e.preventDefault(); goBack(); return; }  // instead of leaving the page
+  if (R && R.editSess && t.closest && t.closest(".sess-form")){
+    if (e.key === "Escape"){ R.editSess = null; renderPanel(); return; }
+    if (e.key === "Enter" && t.tagName === "INPUT"){ e.preventDefault(); saveSession(getP(R.id), R.editSess); return; }
+  }
   if (t.id === "pgIn" && e.key === "Enter"){ goPage(+t.value); t.blur(); return; }
   if (t.id === "tagIn" && e.key === "Enter" && R){ const v = t.value.trim().toLowerCase().replace(/\s+/g,"-"); const p = getP(R.id); if (v && !p.tags.includes(v)){ p.tags.push(v); save(); renderSide(); renderPanel(); $("#tagIn")?.focus(); } return; }
   if (!/INPUT|TEXTAREA|SELECT/.test(t.tagName) && !t.isContentEditable && !e.ctrlKey && !e.metaKey && !e.altKey){
