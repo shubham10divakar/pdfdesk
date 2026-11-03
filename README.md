@@ -1,85 +1,188 @@
+<div align="center">
+
 # PDFDesk
 
-A local-first workspace for reading research papers. It treats each PDF as something that moves through a reading lifecycle, and keeps a history of *how* you read it: sessions, pages, time, highlights and notes.
+### Your reading desk for research papers.
 
-Think Zotero's library + a PDF reader + a notebook + a reading log, in one window.
+**Library, PDF reader, highlights, notes, and a complete log of your reading, all in one window, all on your machine.**
 
-> **Status:** v0.1 prototype. A single-page browser app (HTML/CSS/JS, no build step). Data lives in the browser's localStorage and IndexedDB. The plan is to move to a Tauri + React + SQLite desktop app, shipped through the same `pdfdesk` package. See [docs/roadmap.md](docs/roadmap.md).
-
-## Install
-
-Requires Python 3.9+. No other dependencies.
-
-```bash
-pip install pdfdesk          # or a local wheel: pip install dist/pdfdesk-0.1.0-py3-none-any.whl
-pdfdesk                      # starts PDFDesk and opens http://localhost:5173
-pdfdesk --no-browser         # just start the server
-pdfdesk --help
-```
-
-Your library is stored in the browser you open it in, for the address `localhost:5173`. Use the same browser and the default port, or it will look empty. Uninstalling the package does not delete your library.
-
-## Develop
-
-Requires Node 18+ (or use `python -m pdfdesk` from the repo root).
+[![PyPI](https://img.shields.io/pypi/v/pdfdesk?color=2f55d4&label=pypi)](https://pypi.org/project/pdfdesk/)
+[![Downloads](https://static.pepy.tech/badge/pdfdesk)](https://pepy.tech/project/pdfdesk)
+[![Downloads / month](https://img.shields.io/pypi/dm/pdfdesk?label=downloads%2Fmonth)](https://pypistats.org/packages/pdfdesk)
+[![Python](https://img.shields.io/pypi/pyversions/pdfdesk)](https://pypi.org/project/pdfdesk/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/shubham10divakar/pdfdesk/blob/main/LICENSE)
 
 ```bash
-npm run dev          # serves prototype/ at http://localhost:5173
-npm run check        # syntax-check prototype/app.js
+pip install pdfdesk && pdfdesk
 ```
 
-No `npm install` needed. There are no dependencies. PDF.js and the fonts are vendored in `prototype/vendor/`, so it works offline.
+<img src="https://raw.githubusercontent.com/shubham10divakar/pdfdesk/main/docs/assets/overview.png" alt="PDFDesk overview: reading stats, continue reading, reading calendar, up next and revision queue" width="100%">
 
-Build the Python package with `python -m build` (outputs to `dist/`).
+</div>
 
-Alternative without Node: `cd prototype && python -m http.server 5173`.
+---
 
-## What works today
+## Why PDFDesk
 
-| Area | Features |
+You read dozens of papers a month. A file manager tells you **where** a PDF lives. An annotation tool tells you **what** you marked. Neither tells you **how you read it**: when you opened it, how far you got, how long you actually spent, and what you concluded at the end of each sitting.
+
+PDFDesk keeps that record for you. Every paper moves through a reading lifecycle, every sitting becomes a session, and every highlight and note links back to the page it came from. Months later you can see what you read and why it mattered.
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+### 📚 Organise
+A library that knows where each paper is in your reading, from *Inbox* to *Completed*.
+
+</td>
+<td width="33%" valign="top">
+
+### 🖍️ Read & annotate
+A fast PDF reader with colour-coded highlights and Markdown notes that link to pages.
+
+</td>
+<td width="33%" valign="top">
+
+### 📈 Remember
+Sessions, a reading calendar, streaks and a daily revision queue bring papers back.
+
+</td>
+</tr>
+</table>
+
+---
+
+## Read with highlights that mean something
+
+<img src="https://raw.githubusercontent.com/shubham10divakar/pdfdesk/main/docs/assets/reader-highlights.png" alt="PDFDesk reader with colour-coded highlights and the highlights panel" width="100%">
+
+Select text on any page and pick a colour. Each colour has one job, so a page of highlights reads at a glance:
+
+| | Colour | Meaning |
+|---|---|---|
+| 🟨 | Yellow | Key idea |
+| 🟩 | Green | Method or result |
+| 🟦 | Blue | Definition |
+| 🟥 | Pink | Question or doubt |
+
+- Add a comment to any highlight, and filter the panel by colour.
+- Click a highlight in the panel to jump straight to it in the PDF.
+- Highlights store the selected text as well as their position, so they stay put when you zoom.
+- **Extract to notes** pulls every highlight into your notes, each with its page reference.
+
+## Notes that point back to the page
+
+<img src="https://raw.githubusercontent.com/shubham10divakar/pdfdesk/main/docs/assets/reader-notes.png" alt="PDFDesk notes panel with Markdown and page links next to the PDF" width="100%">
+
+- Write in **Markdown**: headings, bullets, quotes.
+- Type `p. 12` anywhere and it becomes a link to page 12.
+- **Cite p. N** drops in a reference to the page you're on.
+- **Insert highlights** adds your highlights to the notes, each with its page.
+- **Copy** exports the notes as Markdown, ready for your paper, wiki or Obsidian vault.
+- Notes save automatically as you type.
+
+## A library that follows your reading
+
+<img src="https://raw.githubusercontent.com/shubham10divakar/pdfdesk/main/docs/assets/library.png" alt="PDFDesk library with status, progress, last read and tags for each paper" width="100%">
+
+Every paper has a place in the reading lifecycle:
+
+**Inbox → Planned → Reading → Paused → Completed → Revisit**
+
+- Opening a paper moves it to *Reading*. When you reach the last page, PDFDesk asks whether it's *Completed* or worth a *Revisit*.
+- **Import** by button or drag and drop. Title, authors and page count come from the PDF itself.
+- **Search** by title, author or tag from anywhere.
+- **Tags** in the sidebar, with counts, for one-click filtering.
+- See each paper's status, progress bar, pages read and when you last opened it.
+- Set a **target page and date** ("finish section 3 by Friday") and it shows up in *Up next*.
+
+## Every session, recorded
+
+PDFDesk logs each sitting with a paper on its own:
+
+- **Active time only.** The clock pauses when the tab is hidden or you've been idle for 3 minutes, so your stats count reading, not open tabs.
+- **Pages covered**: the first and last page you reached.
+- **A takeaway**: an optional line on what you got out of the session.
+- **Resume where you left off**: every paper reopens at your last page.
+- **Bookmarks** for pages you'll come back to.
+
+## Your reading, at a glance
+
+The overview turns your sessions into a picture of your reading:
+
+- **Stats**: papers in your library, reading now, completed, time and pages this week.
+- **Continue reading**: papers in progress, with a progress bar and a one-click resume.
+- **Reading calendar**: a 17-week heatmap of your reading days, with your current streak and total hours.
+- **Up next**: planned and paused papers, sorted by target date.
+- **Revision queue**: highlights from finished papers come back each day, so ideas don't fade.
+- **Reading log**: every session, newest first.
+
+## Easy on the eyes, day and night
+
+<img src="https://raw.githubusercontent.com/shubham10divakar/pdfdesk/main/docs/assets/reader-dark.png" alt="PDFDesk reader in dark mode" width="100%">
+
+Dark mode follows your system setting. Typography is set for long reading sessions: Source Serif 4 for titles and notes, IBM Plex Sans for the interface, IBM Plex Mono for numbers and page references.
+
+## Keyboard shortcuts
+
+| Key | Action |
 |---|---|
-| Library | Import PDFs (button or drag-drop), title/author from PDF metadata, search, tags, status filters |
-| Lifecycle | Inbox → Planned → Reading → Paused → Completed → Revisit. Opening a paper moves it to Reading. Reaching the last page prompts for Completed or Revisit |
-| Reader | PDF.js rendering with a text layer, lazy page rendering, zoom, page jump, bookmarks, resume at last page, `j`/`k` or arrow keys to change page, `b` to bookmark |
-| Highlights | Select text → 4 colours with meanings (yellow key idea, green method/result, blue definition, pink question). Optional comment per highlight. Click to jump back |
-| Notes | Per-paper Markdown notes. `p. 12` becomes a link to that page. "Insert highlights" pulls highlights into notes with page refs. "Cite p. N" inserts the current page |
-| Sessions | Active reading time (pauses after 3 min idle or when the tab is hidden), page range covered, optional takeaway note. Auto-logged when you leave a paper |
-| Overview | Stats, continue-reading list, 17-week reading heatmap with streak, up-next queue with target dates, daily revision queue of past highlights, reading log |
+| `j` or `→` | Next page |
+| `k` or `←` | Previous page |
+| `b` | Bookmark this page |
+| `Enter` in the page box | Jump to page |
+| `Esc` | Close the highlight menu |
 
-Example papers are seeded on first run so the UI is not empty. Remove them from the sidebar ("Remove examples").
+---
 
-## Repo layout
+## Private by design
 
-```
-prototype/
-  index.html      page shell
-  vendor/         PDF.js 3.11.174 and fonts, with licences
-  styles.css      design tokens (light/dark) + all styles
-  app.js          the whole app: state, storage, views, reader, sessions
-scripts/
-  serve.mjs       zero-dependency static server (Node, for development)
-pdfdesk/
-  cli.py          the `pdfdesk` command: stdlib server + open browser
-pyproject.toml    package metadata; the wheel bundles prototype/ as pdfdesk/static/
-docs/
-  vision.md       what we're building and why
-  architecture.md how the prototype works + the target desktop architecture
-  data-model.md   current JSON shape + proposed SQLite schema
-  roadmap.md      phased plan
-  decisions.md    decision log (ADR-style)
-CLAUDE.md         working context for AI coding assistants
-reference/        how v0.1 was made: original idea notes, design skill, single-file build
+- 🔒 **Local-first.** Your PDFs, notes and history stay on your computer. No account, no cloud, no tracking.
+- ✈️ **Works offline.** The PDF engine and fonts ship inside the package. Nothing loads from the internet.
+- 🪶 **Lightweight.** One small package with **zero Python dependencies**. If you have Python 3.9+, you can run it.
+
+## Get started
+
+```bash
+pip install pdfdesk
+pdfdesk
 ```
 
-## Where data is stored (prototype)
+PDFDesk opens in your browser at **http://localhost:5173**. A few example papers are loaded so you can explore. Remove them from the sidebar when you're ready, then drop in your own PDFs.
 
-- `localStorage["researchdesk.v1"]` holds papers, notes, highlights, sessions and UI state as one JSON blob.
-- IndexedDB database `researchdesk`, store `files`, holds the PDF blobs keyed by paper id.
+```bash
+pdfdesk --no-browser      # start without opening a browser window
+pdfdesk --port 8080       # use another port
+pdfdesk --version
+```
 
-The keys keep the project's old name (ResearchDesk) so existing libraries aren't lost.
+Upgrade any time with `pip install -U pdfdesk`.
 
-Clearing site data for `localhost:5173` wipes everything. There is no export yet; it's on the roadmap.
+> **Good to know:** in this version your library is stored in the browser you open PDFDesk in, for the address `localhost:5173`. Keep using the same browser and the default port and your library will be there every time. Uninstalling the package doesn't delete it.
+
+## What's coming
+
+PDFDesk is at **0.1**, an early release. Next up:
+
+- **Export and import** your whole library, PDFs included.
+- **arXiv and DOI import**: paste an id and the title, authors, year and venue fill themselves in.
+- **Full-text search** across notes and highlights.
+- **PDF outline** in the sidebar, from the paper's table of contents.
+- **PDFDesk 1.0** as a native desktop app (Tauri + SQLite), installed the same way, with `pip install -U pdfdesk`.
+- Later: links between papers, spaced revision, weekly reading reports, Zotero import.
+
+The full plan is in [docs/roadmap.md](https://github.com/shubham10divakar/pdfdesk/blob/main/docs/roadmap.md).
+
+## Contributing
+
+Bug reports and ideas are welcome in [Issues](https://github.com/shubham10divakar/pdfdesk/issues). To work on the code, start with [DEVELOPMENT.md](https://github.com/shubham10divakar/pdfdesk/blob/main/DEVELOPMENT.md).
 
 ## License
 
-Not chosen yet. Bundled third-party code keeps its own licence: PDF.js (Apache-2.0, `prototype/vendor/pdfjs/LICENSE`), fonts (SIL OFL 1.1, `prototype/vendor/fonts/OFL-*.txt`).
+[MIT](https://github.com/shubham10divakar/pdfdesk/blob/main/LICENSE). Bundled third-party code keeps its own licence: [PDF.js](https://mozilla.github.io/pdf.js/) (Apache-2.0) and the Source Serif 4, IBM Plex Sans and IBM Plex Mono fonts (SIL Open Font License 1.1).
+
+<div align="center">
+<br>
+<sub>Built for people who read papers for a living.</sub>
+</div>

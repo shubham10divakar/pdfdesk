@@ -7,6 +7,9 @@ name = "pdfdesk"
 dynamic = ["version"]
 description = "Prototype: a local-first workspace for reading research papers, with a PDF reader, highlights, notes and reading-session history."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Subham" }]
 requires-python = ">=3.9"
 dependencies = []
 keywords = ["pdf", "research", "papers", "reader", "notes", "local-first"]
@@ -18,6 +21,12 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering",
 ]
+
+[project.urls]
+Homepage = "https://github.com/shubham10divakar/pdfdesk"
+Source = "https://github.com/shubham10divakar/pdfdesk"
+Issues = "https://github.com/shubham10divakar/pdfdesk/issues"
+Roadmap = "https://github.com/shubham10divakar/pdfdesk/blob/main/docs/roadmap.md"
 
 [project.scripts]
 pdfdesk = "pdfdesk.cli:main"
@@ -33,4 +42,4 @@ packages = ["pdfdesk"]
 "prototype" = "pdfdesk/static"
 
 [tool.hatch.build.targets.sdist]
-include = ["pdfdesk", "prototype", "README.md", "pyproject.toml"]
+include = ["pdfdesk", "prototype", "README.md", "LICENSE", "pyproject.toml"]

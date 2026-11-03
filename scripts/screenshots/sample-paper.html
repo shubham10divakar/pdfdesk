@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Reading Logs as Research Memory</title>
+<style>
+@page{size:Letter;margin:0.9in 0.85in}
+body{font-family:"Times New Roman",Georgia,serif;font-size:10.5pt;line-height:1.38;color:#111}
+h1{font-size:17pt;text-align:center;margin:0 0 6pt;line-height:1.2}
+.au{text-align:center;font-size:10pt;margin-bottom:2pt}.af{text-align:center;font-size:9pt;color:#444;margin-bottom:16pt}
+.abs{margin:0 0.4in 14pt;font-size:9.5pt}.abs b{display:block;text-align:center;margin-bottom:4pt}
+h2{font-size:11.5pt;margin:14pt 0 5pt}p{text-align:justify;margin:0 0 7pt}
+.eq{text-align:center;font-style:italic;margin:8pt 0}
+table{border-collapse:collapse;margin:8pt auto;font-size:9.5pt}td,th{border-top:1px solid #000;border-bottom:1px solid #000;padding:3pt 10pt}
+.pb{break-before:page}
+</style></head><body>
+<h1>Reading Logs as Research Memory</h1>
+<div class="au">PDFDesk sample document</div>
+<div class="af">Bundled for screenshots and demos. Not a real publication.</div>
+<div class="abs"><b>Abstract</b>Researchers read far more papers than they can remember. We describe a simple model of reading as a sequence of sessions, each with a page range, active minutes and a short takeaway, and argue that this log, more than the highlights themselves, is what lets a reader recover why a paper mattered months later. We outline how sessions, page-anchored notes and a revision queue fit together in a local-first workspace.</div>
+<h2>1 Introduction</h2>
+<p>A typical literature review involves dozens of PDFs opened over several weeks. File managers record where a paper lives, and annotation tools record what was marked, but neither records the reading itself: when a paper was opened, how far the reader got, and what they concluded at the end of each sitting.</p>
+<p>We treat each paper as moving through a lifecycle (inbox, planned, reading, paused, completed, revisit) and each sitting as a session. The session log turns a pile of files into a timeline of attention that can be searched, summarised and revisited.</p>
+<h2>2 Sessions</h2>
+<p>A session starts when a paper is opened and ends when the reader leaves it. Only active time counts: the clock pauses when the window is hidden or there has been no input for three minutes. For a session <i>s</i> we store the first and last page reached and the active minutes <i>m<sub>s</sub></i>.</p>
+<div class="eq">coverage(p) = | &#8899;<sub>s</sub> [from<sub>s</sub>, to<sub>s</sub>] | / pages(p)</div>
+<p>Coverage tells the reader how much of a paper they have actually seen, independent of how long it was left open in a tab.</p>
+<h2>3 Highlights and notes</h2>
+<p>Highlights carry a colour with a fixed meaning: key idea, method or result, definition, and open question. Each highlight stores its text and its position relative to the page, so it survives zoom changes and can be re-anchored if the PDF is replaced by a newer version.</p>
+<p>Notes are plain Markdown. A reference such as <i>p. 3</i> becomes a link back to that page, which keeps every claim in the notes one click away from its source.</p>
+<h2 class="pb">4 Revision</h2>
+<p>Past highlights resurface in a daily revision queue. Reading a highlight again, with its page one click away, is cheap, and it is often enough to bring back the argument of the whole paper.</p>
+<table><tr><th>Signal</th><th>Stored</th><th>Used for</th></tr>
+<tr><td>Session</td><td>pages, minutes, takeaway</td><td>timeline, streak, coverage</td></tr>
+<tr><td>Highlight</td><td>text, colour, page, rects</td><td>revision queue</td></tr>
+<tr><td>Note</td><td>Markdown with page refs</td><td>summary, citation</td></tr></table>
+<h2>5 Conclusion</h2>
+<p>A reading log is cheap to collect and valuable to keep. Combined with page-anchored notes and a revision queue, it gives a researcher a memory of their reading that outlasts any single paper.</p>
+</body></html>
