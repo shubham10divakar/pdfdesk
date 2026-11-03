@@ -245,6 +245,9 @@ td .a{font-size:12px;color:var(--muted)}
 .hl-item .body{display:flex;flex-direction:column;gap:5px;min-width:0}
 .hl-item .txt{font-family:var(--f-display);font-size:14.5px;line-height:1.45;margin:0;overflow-wrap:anywhere;text-align:left;cursor:pointer;border-radius:4px}
 .page.on-hl, .page.on-hl .textLayer span{cursor:pointer}
+.link-layer{position:absolute;inset:0;z-index:3;pointer-events:none}
+.pdf-link{position:absolute;pointer-events:auto;border-radius:2px}
+.pdf-link:hover,.pdf-link:focus-visible{background:color-mix(in srgb, var(--accent) 14%, transparent);outline:1px solid color-mix(in srgb, var(--accent) 50%, transparent);outline-offset:0}
 .hl-item.picked{animation:picked 1.6s ease}
 @keyframes picked{0%,40%{background:color-mix(in srgb, var(--c) 35%, transparent)}100%{background:transparent}}
 @media (prefers-reduced-motion: reduce){ .hl-item.picked{animation:none;outline:2px solid var(--c);outline-offset:2px} }

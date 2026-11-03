@@ -415,6 +415,7 @@ const FEATURES = [
     "Sharp PDF rendering with selectable text",
     "Zoom, jump to a page, bookmarks",
     "Every paper reopens at the page you left it on",
+    "Links in the PDF work: citations, section and figure references jump to the exact spot, web links open in a new tab",
     "Attach or replace the PDF for any paper",
     "Hide the sidebar and the notes panel to give wide pages and slides the full width"]],
   ["Highlights", [
@@ -613,6 +614,7 @@ async function renderPage(n){
     if (gen !== R.gen) return;
     try { await PDFJS.renderTextLayer({textContentSource:tc, container:tl, viewport:vp}).promise; } catch(e){}
     drawHighlights(n);
+    await drawLinks(page, vp, el, gen);
   } catch(e){ R.rendered.delete(n); }
 }
 
@@ -1079,6 +1081,51 @@ async function applyImport(replace){
 
 const isExportFile = f => /\.(zip|json)$/i.test(f.name) || /zip|json/.test(f.type);
 
+/* ---------------- links in the PDF ---------------- */
+// Link annotations (citations, cross-references, contents pages, web links) become clickable areas above the
+// text layer. Only the link areas take clicks, so selecting text elsewhere works as before.
+const SAFE_URL = /^(https?:|mailto:)/i;
+async function drawLinks(page, vp, el, gen){
+  let annots; try { annots = await page.getAnnotations({intent:"display"}); } catch(e){ return; }
+  if (!R || gen !== R.gen) return;
+  const layer = document.createElement("div"); layer.className = "link-layer";
+  for (const a of annots){
+    if (a.subtype !== "Link") continue;
+    const url = a.url || "";
+    if (!a.dest && !SAFE_URL.test(url)) continue;           // javascript:, file:, launch actions etc. are ignored
+    const [x1, y1, x2, y2] = vp.convertToViewportRectangle(a.rect);
+    const l = Math.min(x1, x2), t = Math.min(y1, y2), w = Math.abs(x2 - x1), h = Math.abs(y2 - y1);
+    if (w < 2 || h < 2) continue;
+    const link = document.createElement("a"); link.className = "pdf-link";
+    link.style.cssText = `left:${l / vp.width * 100}%;top:${t / vp.height * 100}%;width:${w / vp.width * 100}%;height:${h / vp.height * 100}%`;
+    if (a.dest){
+      link.href = "#"; link.title = "Go to the linked place in this paper";
+      link.addEventListener("click", ev => { ev.preventDefault(); followDest(a.dest); });
+    } else { link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer"; link.title = url; }
+    layer.appendChild(link);
+  }
+  if (layer.childElementCount) el.appendChild(layer);
+}
+// A destination is a page plus, usually, a position on it (XYZ left/top, or FitH/FitBH top), in PDF units.
+async function followDest(dest){
+  if (!R || !R.pdf) return;
+  try {
+    const exp = typeof dest === "string" ? await R.pdf.getDestination(dest) : dest;
+    if (!Array.isArray(exp) || exp[0] == null) throw new Error("no destination");
+    const n = (typeof exp[0] === "object" ? await R.pdf.getPageIndex(exp[0]) : exp[0]) + 1;
+    const kind = exp[1] && exp[1].name;
+    const top = kind === "XYZ" ? exp[3] : (kind === "FitH" || kind === "FitBH") ? exp[2] : kind === "FitR" ? exp[5] : null;
+    await jumpTo(n, top);
+  } catch(e){ toast("This link points to a place PDFDesk can't find in the file."); }
+}
+async function jumpTo(n, top){
+  const box = $("#pages"), el = pageEl(n); if (!box || !el || !R) return;
+  let y = 0;
+  if (typeof top === "number"){ const pg = await R.pdf.getPage(n); y = Math.max(0, pg.getViewport({scale:R.scale}).convertToViewportPoint(0, top)[1]); }
+  box.scrollTo({top: el.offsetTop + y - 24, behavior:"smooth"});
+  setCurrent(n);
+}
+
 /* ---------------- click a highlight on the page ---------------- */
 // Highlights are drawn under the text layer, so a click lands on the text. Hit-test the click point
 // against the highlight's page-relative rects instead. A drag that selects text is left alone.
@@ -1113,7 +1160,7 @@ function flashHl(id, k = 0){ // highlight divs appear once the page has rendered
 }
 document.addEventListener("click", e => {
   if (!R || e.button !== 0) return;
-  const pg = e.target.closest && e.target.closest("#pages .page"); if (!pg) return;
+  const pg = e.target.closest && e.target.closest("#pages .page"); if (!pg || e.target.closest(".pdf-link")) return;
   const sel = getSelection(); if (sel && !sel.isCollapsed && sel.toString().trim()) return;
   const h = hlAt(pg, e.clientX, e.clientY); if (h) openHighlight(h.id);
 });

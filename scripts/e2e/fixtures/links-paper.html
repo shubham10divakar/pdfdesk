@@ -1,0 +1,30 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Links in Papers: A Test Document</title>
+<style>
+@page{size:Letter;margin:0.9in 0.85in}
+body{font-family:"Times New Roman",Georgia,serif;font-size:11pt;line-height:1.45;color:#111}
+h1{font-size:17pt;text-align:center;margin:0 0 6pt}.sub{text-align:center;font-size:9.5pt;color:#444;margin-bottom:16pt}
+h2{font-size:12pt;margin:14pt 0 5pt}p{text-align:justify;margin:0 0 8pt}a{color:#1a4fd6;text-decoration:none}
+.fig{border:1px solid #888;height:150px;display:flex;align-items:center;justify-content:center;margin:10pt 0 4pt;color:#555}
+.cap{text-align:center;font-size:9.5pt;margin-bottom:10pt}.pb{break-before:page}
+ol.refs{padding-left:22px;font-size:10pt}ol.refs li{margin-bottom:6pt}
+</style></head><body>
+<h1>Links in Papers: A Test Document</h1>
+<div class="sub">PDFDesk test fixture with internal and external links. Not a real publication.</div>
+<h2 id="s1">1 Introduction</h2>
+<p>Readers follow citations constantly. Earlier work on reading logs <a href="#ref1">[1]</a> and on spaced revision <a href="#ref2">[2]</a> motivates this note. Section <a href="#s3">3</a> describes the method and <a href="#fig1">Figure 1</a> shows the setup. The source is at <a href="https://github.com/shubham10divakar/pdfdesk">github.com/shubham10divakar/pdfdesk</a>.</p>
+<p>Following a link should land on the exact place it points to, and the reader should be able to come back afterwards.</p>
+<h2 class="pb" id="s2">2 Background</h2>
+<p>This page is filler so that links have somewhere to travel. A citation in the middle of a page <a href="#ref3">[3]</a> should still work.</p>
+<p>Lorem-free filler: reading is a sequence of sessions, each with a page range and a takeaway. Notes link back to pages. Highlights carry colours with fixed meanings.</p>
+<h2 class="pb" id="s3">3 Method</h2>
+<p>We count active reading time only. The figure below is referenced from the introduction.</p>
+<div class="fig" id="fig1">[ figure placeholder ]</div>
+<div class="cap">Figure 1: The setup. Return to <a href="#s1">Section 1</a>.</div>
+<p style="margin-top:220pt">Text further down the page, to check that a link scrolls to the exact spot, not just the top of the page.</p>
+<h2 class="pb" id="refs">References</h2>
+<ol class="refs">
+<li id="ref1">A. Reader. Reading logs as research memory. <i>PDFDesk Notes</i>, 2026.</li>
+<li id="ref2">B. Spacer. Spaced revision of highlights. <i>Proc. Imaginary Workshop</i>, 2025.</li>
+<li id="ref3">C. Linker. Why citations should be clickable. <i>Journal of Test Fixtures</i> 1(1), 2024.</li>
+</ol>
+</body></html>
