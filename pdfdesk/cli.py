@@ -6,6 +6,7 @@ import argparse
 import errno
 import functools
 import http.server
+import io
 import json
 import os
 import socket
@@ -16,7 +17,7 @@ import webbrowser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from pdfdesk import __version__
+from pdfdesk import __version__, lookup
 from pdfdesk.store import Conflict, Store, default_dir
 
 DEFAULT_PORT = 5173
@@ -196,20 +197,46 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._json(200, {"ok": True})
         self._json(404, {"error": "not found"})
 
+    def _from_app(self) -> bool:
+        """For actions with effects outside the library (opening a program, going online): require the app's own
+        Origin and a JSON content type, which other sites can't send without a CORS preflight we never answer."""
+        if self.headers.get("Origin") is None or not (self.headers.get("Content-Type") or "").startswith("application/json"):
+            self.send_error(403, "Forbidden")
+            return False
+        return True
+
     def do_POST(self) -> None:
         if not self._allowed():
             return
-        if self._api_path() == ["open-folder"]:
-            # Starts a program on this computer, so require proof the request comes from the app itself:
-            # its own Origin, and a JSON content type (which other sites can't send without a preflight).
-            if self.headers.get("Origin") is None or not (self.headers.get("Content-Type") or "").startswith("application/json"):
-                self.send_error(403, "Forbidden")
+        parts = self._api_path()
+        if parts == ["open-folder"]:
+            if not self._from_app():
                 return
             try:
                 open_folder(self.server.store.root)  # type: ignore[attr-defined]
             except OSError as e:
                 return self._json(500, {"error": str(e.strerror or e)})
             return self._json(200, {"ok": True})
+        if parts == ["lookup"]:
+            if not self._from_app():
+                return
+            n = self._length(64 << 10)
+            if n is None:
+                return
+            try:
+                body = json.loads(self.rfile.read(n).decode("utf-8"))
+                query, pid = str(body["query"]), str(body["id"])
+                self.server.store.pdf_path(pid)  # type: ignore[attr-defined]  # validates the id
+            except (ValueError, KeyError, TypeError, UnicodeDecodeError):
+                return self._json(400, {"error": "expected {query, id}"})
+            try:
+                meta, pdf = lookup.look_up(query)
+            except lookup.LookupError_ as e:
+                return self._json(e.status, {"error": str(e)})
+            if pdf is not None:
+                self.server.store.write_pdf(pid, io.BytesIO(pdf), len(pdf))  # type: ignore[attr-defined]
+            meta.pop("pdfUrl", None)
+            return self._json(200, {"paper": meta, "hasFile": pdf is not None})
         self._json(405, {"error": "not supported"})
 
     def do_OPTIONS(self) -> None:

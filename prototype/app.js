@@ -239,6 +239,7 @@ function renderSide(){
       <button class="byline" data-act="about" title="About PDFDesk and its author">Built by ${esc(AUTHOR.name)} with ${HEART}<span class="vh">love</span></button>
     </div>
     <button class="btn primary" data-act="add">+ Add PDFs</button>
+    <button class="add-id" data-act="add-id">Add by arXiv ID or DOI</button>
     <input class="search" id="q" type="search" placeholder="Search papers, notes, highlights" value="${esc(S.ui.q)}" aria-label="Search papers">
     <nav class="nav">
       <button class="nav-i ${S.ui.view==="home"?"on":""}" data-act="home">Overview</button>
@@ -360,7 +361,7 @@ function libHTML(){
     </tr>`).join("");
   return `<div class="wrap">
     <div class="head-row"><div><div class="eyebrow">Library${q?` · matching “${esc(q)}”`:""}</div><h1 class="page-h">${esc(title)}</h1><p class="sub">${sub} <span class="num">${ps.length}</span> ${ps.length===1?"paper":"papers"}.</p></div>
-      <button class="btn" data-act="add">+ Add PDFs</button></div>
+      <div class="row"><button class="btn" data-act="add-id">Add by arXiv ID or DOI</button><button class="btn" data-act="add">+ Add PDFs</button></div></div>
     ${ps.length ? `<div class="tbl-wrap"><table><thead><tr><th>Paper</th><th>Status</th><th>Progress</th><th>Last read</th><th>Tags</th></tr></thead><tbody>${rows}</tbody></table></div>`
       : q ? `<div class="empty">No paper's title, authors or tags match “${esc(q)}”.</div>` : `<div class="empty">No papers here yet. Drop PDFs anywhere on this page, or use Add PDFs.</div>`}
     ${q ? `<section class="sec" aria-labelledby="sr-h"><div class="sec-h"><h2 id="sr-h">In your notes and highlights</h2></div>${searchHTML(scope, S.ui.q.trim())}</section>` : ""}
@@ -764,7 +765,7 @@ function renderPanel(){
         <label class="lbl" for="tgPage">From page<input class="in num" id="tgPage" type="number" min="1" max="${p.pages||999}" value="${p.target?p.target.page:Math.min((p.lastPage||1)+1, p.pages||999)}"></label>
         <label class="lbl" for="tgDate">On<input class="in" id="tgDate" type="date" value="${p.target?p.target.date:""}"></label></div>
         <div class="row"><button class="btn sm" data-act="target-save">Set target</button>${p.target?`<button class="btn sm ghost" data-act="target-clear">Clear</button>`:""}</div></div>
-      <div class="card"><h3>Paper</h3>
+      <div class="card"><h3>Paper</h3>${sourceLink(p)}
         <label class="lbl" for="mTitle">Title<input class="in" id="mTitle" data-meta="title" value="${esc(p.title)}"></label>
         <label class="lbl" for="mAuth">Authors<input class="in" id="mAuth" data-meta="authors" value="${esc(p.authors)}"></label>
         <div class="two"><label class="lbl" for="mVenue">Venue<input class="in" id="mVenue" data-meta="venue" value="${esc(p.venue)}"></label><label class="lbl" for="mYear">Year<input class="in num" id="mYear" data-meta="year" value="${esc(p.year)}"></label></div>
@@ -995,6 +996,7 @@ function cleanPaper(p){
   return {id:String(p.id), sample:false, hasFile:!!p.hasFile, title:String(p.title || "Untitled"), authors:String(p.authors || ""), year:p.year ?? "", venue:String(p.venue || ""), pages:+p.pages || 0,
     status:st, tags:arr(p.tags).map(String), notes:String(p.notes || ""), highlights:arr(p.highlights).filter(h => h && h.id), sessions:arr(p.sessions).filter(s => s && s.id),
     bookmarks:arr(p.bookmarks).map(Number).filter(Number.isFinite), target:p.target && p.target.page ? p.target : null, summary:p.summary ? String(p.summary) : undefined,
+    arxiv:String(p.arxiv || ""), doi:String(p.doi || ""), url:SAFE_URL.test(String(p.url || "")) ? String(p.url) : "",
     addedAt:+p.addedAt || Date.now(), lastOpened:+p.lastOpened || 0, lastPage:+p.lastPage || 1, maxPage:+p.maxPage || 0};
 }
 
@@ -1158,6 +1160,56 @@ async function jumpTo(n, top){
   if (typeof top === "number"){ const pg = await R.pdf.getPage(n); y = Math.max(0, pg.getViewport({scale:R.scale}).convertToViewportPoint(0, top)[1]); }
   box.scrollTo({top: el.offsetTop + y - 24, behavior:"smooth"});
   setCurrent(n);
+}
+
+/* ---------------- add by arXiv id or DOI ---------------- */
+// The pdfdesk server looks the paper up (arXiv / Crossref) and, for arXiv, saves the PDF into the library folder.
+function arxivBase(q){ const m = /(\d{4}\.\d{4,5})|([a-z][a-z.\-]*\/\d{7})/i.exec(q || ""); return m ? (m[1] || m[2]).toLowerCase() : ""; }
+function doiOf(q){ const m = /(10\.\d{4,9}\/[^\s"<>]+)/.exec(q || ""); return m ? m[1].replace(/[.,;]+$/, "").toLowerCase() : ""; }
+function existingFor(q){
+  const ax = /10\.48550\/arxiv\./i.test(q) || /arxiv/i.test(q) || !doiOf(q) ? arxivBase(q) : "", doi = doiOf(q);
+  return S.papers.find(p => (ax && (p.arxiv || "").toLowerCase() === ax) || (doi && (p.doi || "").toLowerCase() === doi)) || null;
+}
+function showAddById(){
+  const m = $("#modal");
+  m.innerHTML = `<div class="mdl" role="dialog" aria-modal="true" aria-labelledby="mdl-h">
+    <h2 id="mdl-h">Add a paper by arXiv ID or DOI</h2>
+    ${DISK.on ? `<p>Paste an arXiv ID or link (like <span class="num">1706.03762</span>) or a DOI (like <span class="num">10.1145/3292500.3330701</span>). Title, authors, year and venue are filled in for you; arXiv papers come with their PDF.</p>
+    <input class="in" id="idIn" autocomplete="off" spellcheck="false" placeholder="1706.03762, arxiv.org/abs/…, or 10.…/…" aria-label="arXiv ID or DOI">
+    <p class="hint" id="idMsg" role="status"></p>
+    <div class="mdl-foot"><button class="btn ghost" data-act="modal-close">Cancel</button><button class="btn primary" id="idGo" data-act="add-id-go">Add paper</button></div>`
+    : `<p>Looking papers up needs PDFDesk started with the <span class="num">pdfdesk</span> command, which fetches the details (and arXiv PDFs) for you. Here you can still add PDFs you've downloaded.</p>
+    <div class="mdl-foot"><button class="btn primary" data-act="modal-close">OK</button></div>`}
+  </div>`;
+  m.hidden = false; ($("#idIn") || m.querySelector(".btn.primary")).focus();
+}
+async function addById(){
+  const inp = $("#idIn"), msg = $("#idMsg"), go = $("#idGo"); if (!inp) return;
+  const q = inp.value.trim(); if (!q){ msg.textContent = "Paste an arXiv ID or a DOI first."; inp.focus(); return; }
+  const have = existingFor(q);
+  if (have){ closeModal(); toast(`“${have.title}” is already in your library`); openReader(have.id); return; }
+  const id = uid(); go.disabled = inp.disabled = true; go.textContent = "Looking it up…"; msg.textContent = "";
+  let r, data = null;
+  try { r = await fetch("api/lookup", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({query:q, id})}); data = await r.json().catch(() => null); }
+  catch(e){ r = null; }
+  if (!r || !r.ok || !data || !data.paper){
+    go.disabled = inp.disabled = false; go.textContent = "Add paper";
+    msg.textContent = (data && data.error) || "PDFDesk couldn't look that up. Is pdfdesk still running?"; inp.focus(); inp.select(); return;
+  }
+  const m = data.paper, dup = S.papers.find(p => (m.arxiv && p.arxiv === m.arxiv) || (m.doi && (p.doi || "").toLowerCase() === m.doi.toLowerCase()));
+  if (dup){ if (data.hasFile) idb.del(id); closeModal(); toast(`“${dup.title}” is already in your library`); openReader(dup.id); return; }
+  S.papers.unshift({id, sample:false, hasFile:!!data.hasFile, title:m.title, authors:m.authors || "Unknown authors", year:m.year || "", venue:m.venue || "", pages:0,
+    arxiv:m.arxiv || "", doi:m.doi || "", url:m.url || "",
+    status:"inbox", tags:[], notes:"", highlights:[], sessions:[], bookmarks:[], target:null, addedAt:Date.now(), lastOpened:0, lastPage:1, maxPage:0});
+  save(); closeModal();
+  if (!(S.ui.view === "reader" && R)){ S.ui.view = "library"; S.ui.filter = "inbox"; }
+  renderAll();
+  toast(data.hasFile ? `Added “${m.title}” to your Inbox, with its PDF` : `Added “${m.title}” to your Inbox. Attach its PDF from the Details tab.`);
+}
+function sourceLink(p){
+  if (!p.url || !SAFE_URL.test(p.url)) return "";
+  const label = p.arxiv ? `arXiv ${p.arxiv}` : p.doi ? `DOI ${p.doi}` : p.url;
+  return `<a class="src-link" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(label)} ↗</a>`;
 }
 
 /* ---------------- search inside the library ---------------- */
@@ -1343,6 +1395,8 @@ document.addEventListener("click", async e => {
     case "left-skip": $("#leftbar").hidden = true; try { localStorage.setItem(LEFTKEY, "skipped"); } catch(err){} break;
     case "filter": closeReader(); S.ui.view = "library"; S.ui.filter = v; save(); renderAll(); break;
     case "open": openReader(v); break;
+    case "add-id": showAddById(); break;
+    case "add-id-go": addById(); break;
     case "open-at": { S.ui.tab = t.dataset.tab; if (S.ui.tab === "notes") S.ui.nmode = "preview"; const pg = +t.dataset.p, q = t.dataset.q; await openReader(v, pg ? {page:pg} : null); if (S.ui.tab === "notes") showNoteMatch(q); break; }
     case "open-hl": { const pp = getP(v), h = pp && pp.highlights.find(x => x.id === t.dataset.h); S.ui.tab = "highlights"; openReader(v, h ? {page:h.page, hl:h.id} : null); break; }
     case "add": $("#fileIn").click(); break;
@@ -1384,6 +1438,7 @@ document.addEventListener("input", e => {
 document.addEventListener("keydown", e => {
   const t = e.target;
   if (e.key === "Escape" && !$("#modal").hidden){ closeModal(); return; }
+  if (t.id === "idIn" && e.key === "Enter"){ e.preventDefault(); addById(); return; }
   if (e.altKey && e.key === "ArrowLeft" && R && R.hist.length){ e.preventDefault(); goBack(); return; }  // instead of leaving the page
   if (R && R.editSess && t.closest && t.closest(".sess-form")){
     if (e.key === "Escape"){ R.editSess = null; renderPanel(); return; }
