@@ -272,6 +272,16 @@ textarea.in{height:auto;min-height:56px;padding:7px 9px;resize:vertical}
 .drop{position:fixed;inset:0;z-index:70;display:grid;place-items:center;background:color-mix(in srgb, var(--accent) 18%, transparent);backdrop-filter:blur(2px)}
 .drop div{background:var(--raised);border:2px dashed var(--accent);border-radius:14px;padding:28px 36px;font-family:var(--f-display);font-size:20px;font-weight:600}
 
+/* ---------- collapsible sidebar and notes panel ---------- */
+.side-x{margin-left:auto;align-self:center}
+.app.side-off{grid-template-columns:minmax(0,1fr)}
+.app.side-off .side{display:none}
+.side-open{position:fixed;top:calc(10px + env(safe-area-inset-top, 0px));left:max(10px, env(safe-area-inset-left, 0px));z-index:30;background:var(--raised);border:1px solid var(--line);box-shadow:var(--shadow)}
+.side-open[hidden]{display:none}
+.app.side-off .main:not(.is-reader) .wrap{padding-left:max(52px, env(safe-area-inset-left, 0px))}
+.reader.panel-off{grid-template-columns:minmax(0,1fr)}
+.reader.panel-off .r-panel{display:none}
+.tg-side[aria-pressed="true"],.tg-panel[aria-pressed="true"]{color:var(--accent)}
 @media (max-width: 1100px){
   .reader{grid-template-columns:minmax(0,1fr) 310px}
   .stats{grid-template-columns:repeat(3,minmax(0,1fr))}

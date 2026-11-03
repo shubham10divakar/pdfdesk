@@ -235,7 +235,7 @@ function renderSide(){
   const hasEx = S.papers.some(p => p.sample);
   $("#side").innerHTML = `
     <div class="brand-wrap">
-      <div class="brand"><b>PDFDesk</b><span>local</span></div>
+      <div class="brand"><b>PDFDesk</b><span>local</span><button class="icon-b side-x" data-act="side" title="Hide the sidebar ( [ )" aria-label="Hide the library sidebar">${ICON.sideL}</button></div>
       <button class="byline" data-act="about" title="About PDFDesk and its author">Built by ${esc(AUTHOR.name)} with ${HEART}<span class="vh">love</span></button>
     </div>
     <button class="btn primary" data-act="add">+ Add PDFs</button>
@@ -370,7 +370,24 @@ function renderMain(){
   m.innerHTML = S.ui.view === "library" ? libHTML() : S.ui.view === "about" ? aboutHTML() : homeHTML();
   m.scrollTop = 0;
 }
-function renderAll(){ renderSide(); if (S.ui.view === "reader" && R) renderPanel(); else renderMain(); }
+function renderAll(){ renderSide(); if (S.ui.view === "reader" && R) renderPanel(); else renderMain(); applyLayout(); }
+
+// Collapsible library sidebar and notes panel. Remembered per browser (S.ui); pages re-fit to the new width.
+function applyLayout(){
+  $("#app").classList.toggle("side-off", !!S.ui.sideOff);
+  $("#sideOpen").hidden = !S.ui.sideOff || (S.ui.view === "reader" && !!R);
+  const rd = document.querySelector(".reader"); if (rd) rd.classList.toggle("panel-off", !!S.ui.panelOff);
+  const set = (sel, on, what, key) => { const b = document.querySelector(sel); if (!b) return; b.setAttribute("aria-pressed", String(on)); b.title = `${on ? "Hide" : "Show"} ${what} ( ${key} )`; b.setAttribute("aria-label", `${on ? "Hide" : "Show"} ${what}`); };
+  set(".tg-side", !S.ui.sideOff, "the sidebar", "[");
+  set(".tg-panel", !S.ui.panelOff, "notes and highlights", "]");
+}
+function toggleBar(which){
+  if (which === "panel" && !(S.ui.view === "reader" && R)) return;
+  const k = which === "side" ? "sideOff" : "panelOff";
+  S.ui[k] = !S.ui[k]; save(); applyLayout();
+  if (S.ui.view === "reader" && R && $("#pages .page")) requestAnimationFrame(() => buildPages());
+  if (which === "side" && !S.ui.sideOff) $(".side-x")?.focus(); else if (which === "side") ($(".tg-side") || $("#sideOpen"))?.focus();
+}
 
 /* ---------------- about ---------------- */
 // Who built PDFDesk and where to reach them. Links with an empty url are not shown.
@@ -398,7 +415,8 @@ const FEATURES = [
     "Sharp PDF rendering with selectable text",
     "Zoom, jump to a page, bookmarks",
     "Every paper reopens at the page you left it on",
-    "Attach or replace the PDF for any paper"]],
+    "Attach or replace the PDF for any paper",
+    "Hide the sidebar and the notes panel to give wide pages and slides the full width"]],
   ["Highlights", [
     "Four colours, each with one meaning: yellow key idea, green method or result, blue definition, pink question",
     "Comment on any highlight and filter the list by colour",
@@ -429,7 +447,7 @@ const FEATURES = [
     "The PDF engine and fonts are built in, so it works without internet",
     "Dark mode follows your system setting"]],
 ];
-const KEYS = [[["j", "→"], "Next page"], [["k", "←"], "Previous page"], [["b"], "Bookmark this page"], [["Enter"], "Jump to the page typed in the page box"], [["Esc"], "Close the highlight menu"]];
+const KEYS = [[["j", "→"], "Next page"], [["k", "←"], "Previous page"], [["b"], "Bookmark this page"], [["["], "Show or hide the sidebar"], [["]"], "Show or hide notes and highlights"], [["Enter"], "Jump to the page typed in the page box"], [["Esc"], "Close the highlight menu"]];
 
 function aboutHTML(){
   const links = AUTHOR.links.filter(l => l.url);
@@ -490,6 +508,8 @@ const ICON = {
   minus:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3.5 8h9"/></svg>',
   plus:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3.5 8h9M8 3.5v9"/></svg>',
   bm:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 2.5h8v11L8 10.5l-4 3z"/></svg>',
+  sideL:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M6 3v10"/></svg>',
+  sideR:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M10 3v10"/></svg>',
   bmOn:'<svg viewBox="0 0 16 16" fill="currentColor" stroke="currentColor" stroke-width="1.6"><path d="M4 2.5h8v11L8 10.5l-4 3z"/></svg>'
 };
 
@@ -503,22 +523,24 @@ async function openReader(id, jump){
        session:{start:Date.now(), active:0, from:p.lastPage||1, max:p.lastPage||1}};
   renderSide();
   const m = $("#main"); m.classList.add("is-reader");
-  m.innerHTML = `<div class="reader">
+  m.innerHTML = `<div class="reader${S.ui.panelOff ? " panel-off" : ""}">
     <div class="r-center">
       <div class="r-bar">
+        <button class="icon-b tg-side" data-act="side" title="${S.ui.sideOff ? "Show" : "Hide"} the sidebar ( [ )" aria-label="${S.ui.sideOff ? "Show" : "Hide"} the library sidebar" aria-pressed="${!S.ui.sideOff}">${ICON.sideL}</button>
         <button class="icon-b" data-act="home" title="Back to overview" aria-label="Back">${ICON.back}</button>
         <div class="r-title" title="${esc(p.title)}">${esc(p.title)}</div>
         <div class="r-group"><input class="pg-in" id="pgIn" inputmode="numeric" aria-label="Page number" value="${R.current}"><span class="r-of" id="pgOf">/ ${p.pages||"…"}</span></div>
         <div class="r-group"><button class="icon-b" data-act="zoom" data-v="-1" aria-label="Zoom out">${ICON.minus}</button><span class="r-of" id="zoomLbl" style="min-width:38px;text-align:center">${Math.round(S.ui.zoom*100)}%</span><button class="icon-b" data-act="zoom" data-v="1" aria-label="Zoom in">${ICON.plus}</button></div>
         <button class="icon-b" id="bmBtn" data-act="bookmark" title="Bookmark this page" aria-label="Bookmark this page">${ICON.bm}</button>
         <span class="timer" id="timer" title="Active reading time this session"><i></i><span id="timerT">0:00</span></span>
+        <button class="icon-b tg-panel" data-act="panel" title="${S.ui.panelOff ? "Show" : "Hide"} notes and highlights ( ] )" aria-label="${S.ui.panelOff ? "Show" : "Hide"} the notes panel" aria-pressed="${!S.ui.panelOff}">${ICON.sideR}</button>
       </div>
       <div class="r-banner" id="banner" hidden></div>
       <div class="pages" id="pages"><div class="empty" style="background:var(--raised)">Opening…</div></div>
     </div>
     <aside class="r-panel" id="panel"></aside>
   </div>`;
-  renderPanel();
+  renderPanel(); applyLayout();
   await loadDoc(p);
   if (jump) goPage(jump.page, jump.hl);
   updateBanner(); updateBm();
@@ -1059,6 +1081,8 @@ document.addEventListener("click", async e => {
     case "imp-replace-export": { const ok = await exportLibrary(true); if (ok) applyImport(true); break; }
     case "modal-close": closeModal(); break;
     case "left-add": addLeftovers(); break;
+    case "side": toggleBar("side"); break;
+    case "panel": toggleBar("panel"); break;
     case "open-folder": openFolder(); break;
     case "left-skip": $("#leftbar").hidden = true; try { localStorage.setItem(LEFTKEY, "skipped"); } catch(err){} break;
     case "filter": closeReader(); S.ui.view = "library"; S.ui.filter = v; save(); renderAll(); break;
@@ -1105,6 +1129,10 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape" && !$("#modal").hidden){ closeModal(); return; }
   if (t.id === "pgIn" && e.key === "Enter"){ goPage(+t.value); t.blur(); return; }
   if (t.id === "tagIn" && e.key === "Enter" && R){ const v = t.value.trim().toLowerCase().replace(/\s+/g,"-"); const p = getP(R.id); if (v && !p.tags.includes(v)){ p.tags.push(v); save(); renderSide(); renderPanel(); $("#tagIn")?.focus(); } return; }
+  if (!/INPUT|TEXTAREA|SELECT/.test(t.tagName) && !t.isContentEditable && !e.ctrlKey && !e.metaKey && !e.altKey){
+    if (e.key === "["){ toggleBar("side"); e.preventDefault(); return; }
+    if (e.key === "]"){ toggleBar("panel"); e.preventDefault(); return; }
+  }
   if (!R || /INPUT|TEXTAREA|SELECT/.test(t.tagName)) return;
   if (e.key === "j" || e.key === "ArrowRight"){ goPage(R.current+1); e.preventDefault(); }
   if (e.key === "k" || e.key === "ArrowLeft"){ goPage(R.current-1); e.preventDefault(); }

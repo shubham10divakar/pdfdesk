@@ -2,6 +2,10 @@
 
 All notable changes to PDFDesk. Versions follow [semantic versioning](https://semver.org/); dates are release dates.
 
+## Unreleased
+
+- **Collapsible sidebar and notes panel.** Hide either one with the buttons at the ends of the reader toolbar (or next to the PDFDesk name), or press `[` and `]`. Pages re-fit to the new width and keep your place, so wide pages and slides get the whole window. The choice is remembered.
+
 ## 0.2.2 (2026-11-03)
 
 - **Fix:** when zoomed in, the left side of a page couldn't be scrolled to. Wide pages now scroll to both edges, and pages that fit stay centred.

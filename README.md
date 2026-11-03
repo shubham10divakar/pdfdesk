@@ -70,6 +70,7 @@ Select text on any page and pick a colour. Each colour has one job, so a page of
 - Click a highlight in the panel to jump straight to it in the PDF.
 - Highlights store the selected text as well as their position, so they stay put when you zoom.
 - **Extract to notes** pulls every highlight into your notes, each with its page reference.
+- **Make room for the page:** hide the sidebar and the notes panel (`[` and `]`, or the buttons at either end of the toolbar) and wide pages and slides get the full width.
 
 ## Notes that point back to the page
 
@@ -138,6 +139,8 @@ Dark mode follows your system setting. Typography is set for long reading sessio
 | `j` or `→` | Next page |
 | `k` or `←` | Previous page |
 | `b` | Bookmark this page |
+| `[` | Show or hide the sidebar |
+| `]` | Show or hide notes and highlights |
 | `Enter` in the page box | Jump to page |
 | `Esc` | Close the highlight menu |
 
