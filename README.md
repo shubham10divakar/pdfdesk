@@ -7,7 +7,7 @@
 **Library, PDF reader, highlights, notes, and a complete log of your reading, all in one window, all on your machine.**
 
 [![PyPI](https://img.shields.io/pypi/v/pdfdesk?color=2f55d4&label=pypi)](https://pypi.org/project/pdfdesk/)
-[![Downloads](https://static.pepy.tech/badge/pdfdesk)](https://pepy.tech/project/pdfdesk)
+[![Downloads](https://img.shields.io/pepy/dt/pdfdesk?label=downloads)](https://pepy.tech/projects/pdfdesk)
 [![Downloads / month](https://img.shields.io/pypi/dm/pdfdesk?label=downloads%2Fmonth)](https://pypistats.org/packages/pdfdesk)
 [![Python](https://img.shields.io/pypi/pyversions/pdfdesk)](https://pypi.org/project/pdfdesk/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/shubham10divakar/pdfdesk/blob/main/LICENSE)
@@ -21,6 +21,19 @@ pip install pdfdesk && pdfdesk
 </div>
 
 ---
+
+## New in 1.0
+
+- 🔗 **Links in your PDFs work:** citations, figure and section references jump to the exact spot, and **Back** (`Alt+←`) returns you.
+- 📑 **Contents tab** from the paper's own outline, marking the section you're reading.
+- 🔎 **Search everything:** titles, authors, tags, and inside your highlights, comments, notes and session takeaways.
+- ➕ **Add by arXiv ID or DOI:** paste `1706.03762` and the paper arrives with its details and PDF.
+- 🖍️ **Highlights survive a new PDF version:** replace the file and they find their text again.
+- 🧭 **Panel and page are connected:** click a highlight on the page to open it, or in the panel to see it on the page.
+- ↔️ **Room to read:** hide the sidebar and the notes panel with `[` and `]`.
+- ✏️ **Fix a session** logged by mistake.
+
+Full list in [CHANGELOG.md](https://github.com/shubham10divakar/pdfdesk/blob/main/CHANGELOG.md).
 
 ## Why PDFDesk
 
@@ -181,11 +194,11 @@ Upgrade any time with `pip install -U pdfdesk`.
 
 ## What's coming
 
-PDFDesk is at **0.2**, an early release. Next up:
+PDFDesk is at **1.0**. Next up:
 
 - **Recolour instead of duplicate:** highlighting text that's already highlighted will offer to change its colour.
 - **Reference preview:** hover over a citation to read the reference without jumping.
-- **PDFDesk 1.0** as a native desktop app (Tauri + SQLite), installed the same way, with `pip install -U pdfdesk`.
+- **PDFDesk 2.0** as a native desktop app (Tauri + SQLite), installed the same way, with `pip install -U pdfdesk`.
 - Later: links between papers, spaced revision, weekly reading reports, Zotero import.
 
 The full plan is in [docs/roadmap.md](https://github.com/shubham10divakar/pdfdesk/blob/main/docs/roadmap.md).
