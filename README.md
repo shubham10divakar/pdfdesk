@@ -67,7 +67,7 @@ Select text on any page and pick a colour. Each colour has one job, so a page of
 | 🟥 | Pink | Question or doubt |
 
 - Add a comment to any highlight, and filter the panel by colour.
-- Click a highlight in the panel to jump straight to it in the PDF: it scrolls to the page and flashes.
+- Click a highlight in the panel to jump straight to it in the PDF: it scrolls to the page and flashes. It works the other way too: click a highlight on the page and the panel opens at it, ready for a comment.
 - Highlights store the selected text as well as their position, so they stay put when you zoom.
 - **Extract to notes** pulls every highlight into your notes, each with its page reference.
 - **Make room for the page:** hide the sidebar and the notes panel (`[` and `]`, or the buttons at either end of the toolbar) and wide pages and slides get the full width.

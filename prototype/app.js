@@ -420,7 +420,7 @@ const FEATURES = [
   ["Highlights", [
     "Four colours, each with one meaning: yellow key idea, green method or result, blue definition, pink question",
     "Comment on any highlight and filter the list by colour",
-    "Click a highlight to jump to it on the page",
+    "Click a highlight in the panel to jump to it on the page, or click it on the page to open it in the panel",
     "Highlights keep their text and position, so they stay put when you zoom",
     "Extract to notes pulls every highlight into your notes with its page"]],
   ["Notes", [
@@ -732,7 +732,7 @@ function renderPanel(){
     body = `<div class="row"><div class="seg"><button class="${f==="all"?"on":""}" data-act="hlf" data-v="all">All</button>${Object.keys(HLC).map(c => `<button class="${f===c?"on":""}" data-act="hlf" data-v="${c}" title="${HLC[c]}"><span class="dot" style="--c:var(--hl-${c})"></span></button>`).join("")}</div>
       <button class="btn sm" data-act="ins-hl" style="margin-left:auto">Extract to notes</button></div>
       <div class="hint">Yellow key idea · green method/result · blue definition · pink question</div>
-      ${hs.length ? hs.map((h,i) => `${i?'<div class="hl-sep"></div>':""}<div class="hl-item" style="--c:var(--hl-${h.color})"><span class="stripe"></span><div class="body">
+      ${hs.length ? hs.map((h,i) => `${i?'<div class="hl-sep"></div>':""}<div class="hl-item" data-hl="${h.id}" style="--c:var(--hl-${h.color})"><span class="stripe"></span><div class="body">
           <button class="txt" data-act="goto" data-v="${h.page}" data-h="${h.id}" title="Show on page ${h.page}">${esc(h.text)}</button>
           <textarea class="hl-cm" data-cm="${h.id}" rows="1" placeholder="Add a comment">${esc(h.comment)}</textarea>
           <div class="acts"><button class="pref" data-act="goto" data-v="${h.page}" data-h="${h.id}">p. ${h.page}</button><span>${HLC[h.color]}</span><button data-act="hl-del" data-v="${h.id}" style="margin-left:auto">Remove</button></div>
@@ -1078,6 +1078,56 @@ async function applyImport(replace){
 }
 
 const isExportFile = f => /\.(zip|json)$/i.test(f.name) || /zip|json/.test(f.type);
+
+/* ---------------- click a highlight on the page ---------------- */
+// Highlights are drawn under the text layer, so a click lands on the text. Hit-test the click point
+// against the highlight's page-relative rects instead. A drag that selects text is left alone.
+function hlAt(pg, x, y){
+  if (!R) return null;
+  const p = getP(R.id), n = +pg.dataset.n, r = pg.getBoundingClientRect(); if (!p || !r.width) return null;
+  const fx = (x - r.left) / r.width, fy = (y - r.top) / r.height;
+  return p.highlights.find(h => h.page === n && h.rects && h.rects.some(q => fx >= q.x && fx <= q.x + q.w && fy >= q.y && fy <= q.y + q.h)) || null;
+}
+function openHighlight(id){
+  const p = R && getP(R.id), h = p && p.highlights.find(x => x.id === id); if (!h) return;
+  const reopened = !!S.ui.panelOff;
+  S.ui.tab = "highlights"; S.ui.hlFilter = "all"; S.ui.panelOff = false; save();
+  renderPanel(); applyLayout();
+  const card = document.querySelector(`.hl-item[data-hl="${id}"]`);
+  if (card){ card.scrollIntoView({block:"center", behavior:"smooth"}); card.classList.remove("picked"); void card.offsetWidth; card.classList.add("picked"); }
+  // You clicked it, so it's on screen: just flash it. If the panel had to reopen, the pages re-fit narrower,
+  // so scroll back to the highlight itself (not the top of its page).
+  if (reopened) requestAnimationFrame(() => { buildPages(); scrollToHl(h); flashHl(id); });
+  else flashHl(id);
+}
+function scrollToHl(h){
+  const box = $("#pages"), el = pageEl(h.page); if (!box || !el) return;
+  const y = h.rects && h.rects.length ? Math.min(...h.rects.map(q => q.y)) : 0;
+  box.scrollTo({top: el.offsetTop + y * el.offsetHeight - box.clientHeight / 3, behavior:"auto"});
+  setCurrent(h.page);
+}
+function flashHl(id, k = 0){ // highlight divs appear once the page has rendered, so retry briefly
+  const ds = document.querySelectorAll(`.hl[data-h="${id}"]`);
+  if (ds.length) ds.forEach(d => { d.classList.remove("flash"); void d.offsetWidth; d.classList.add("flash"); });
+  else if (k < 20) setTimeout(() => flashHl(id, k + 1), 150);
+}
+document.addEventListener("click", e => {
+  if (!R || e.button !== 0) return;
+  const pg = e.target.closest && e.target.closest("#pages .page"); if (!pg) return;
+  const sel = getSelection(); if (sel && !sel.isCollapsed && sel.toString().trim()) return;
+  const h = hlAt(pg, e.clientX, e.clientY); if (h) openHighlight(h.id);
+});
+let hovPt = null;
+document.addEventListener("mousemove", e => {
+  if (!R || hovPt) { if (hovPt) hovPt = [e.target, e.clientX, e.clientY]; return; }
+  hovPt = [e.target, e.clientX, e.clientY];
+  requestAnimationFrame(() => {
+    const [t, x, y] = hovPt; hovPt = null;
+    const pg = t && t.closest && t.closest("#pages .page");
+    document.querySelectorAll("#pages .page.on-hl").forEach(el => { if (el !== pg) el.classList.remove("on-hl"); });
+    if (pg) pg.classList.toggle("on-hl", !!hlAt(pg, x, y));
+  });
+}, {passive:true});
 
 /* ---------------- events ---------------- */
 document.addEventListener("click", async e => {

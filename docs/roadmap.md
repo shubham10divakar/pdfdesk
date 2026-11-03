@@ -11,7 +11,7 @@ Small changes, no build step.
 - [ ] **arXiv / DOI import**: paste an id, fill title, authors, year, venue (arXiv API, Crossref)
 - [ ] **Full-text search** across notes and highlights (simple in-memory index)
 - [ ] **Highlight re-anchoring**: store prefix/suffix text and re-find highlights when a PDF is replaced
-- [ ] **Click a highlight on the page** to open its comment
+- [x] **Click a highlight on the page** to open its comment
 - [ ] **Session edit/delete** for mistaken sessions
 - [ ] **Outline sidebar** from the PDF's table of contents (`pdf.getOutline()`)
 - [x] Vendor PDF.js and fonts locally so the app works offline (D-009)
