@@ -239,7 +239,7 @@ function renderSide(){
       <button class="byline" data-act="about" title="About PDFDesk and its author">Built by ${esc(AUTHOR.name)} with ${HEART}<span class="vh">love</span></button>
     </div>
     <button class="btn primary" data-act="add">+ Add PDFs</button>
-    <input class="search" id="q" type="search" placeholder="Search title, author, tag" value="${esc(S.ui.q)}" aria-label="Search papers">
+    <input class="search" id="q" type="search" placeholder="Search papers, notes, highlights" value="${esc(S.ui.q)}" aria-label="Search papers">
     <nav class="nav">
       <button class="nav-i ${S.ui.view==="home"?"on":""}" data-act="home">Overview</button>
       <button class="nav-i ${f==="all"?"on":""}" data-act="filter" data-v="all">All papers <span class="ct">${S.papers.length}</span></button>
@@ -348,7 +348,8 @@ function libHTML(){
   let title = "All papers", sub = "Everything you've imported.";
   if (f.startsWith("tag:")) { const t = f.slice(4); ps = ps.filter(p => p.tags.includes(t)); title = "#"+t; sub = "Papers with this tag."; }
   else if (f !== "all") { ps = ps.filter(p => p.status === f); title = SLABEL[f]; sub = {inbox:"Imported, not yet evaluated.", planned:"You intend to read these.", reading:"Currently open on your desk.", paused:"Started, then set aside.", completed:"Finished.", revisit:"Worth reading again."}[f]; }
-  if (q) ps = ps.filter(p => (p.title+" "+p.authors+" "+p.tags.join(" ")+" "+p.venue).toLowerCase().includes(q));
+  const scope = ps.slice();
+  if (q) ps = ps.filter(p => hasAll(p.title+" "+p.authors+" "+p.tags.join(" ")+" "+p.venue+" "+(p.year||""), qWords(q)));
   ps.sort((a,b) => (b.lastOpened||b.addedAt||0) - (a.lastOpened||a.addedAt||0));
   const rows = ps.map(p => `<tr data-act="open" data-v="${p.id}">
       <td style="max-width:420px"><div class="t">${esc(p.title)}${p.sample?'<span class="ex">example</span>':""}</div><div class="a">${esc(p.authors)} · ${esc(p.venue)} ${p.year||""}</div></td>
@@ -361,7 +362,8 @@ function libHTML(){
     <div class="head-row"><div><div class="eyebrow">Library${q?` · matching “${esc(q)}”`:""}</div><h1 class="page-h">${esc(title)}</h1><p class="sub">${sub} <span class="num">${ps.length}</span> ${ps.length===1?"paper":"papers"}.</p></div>
       <button class="btn" data-act="add">+ Add PDFs</button></div>
     ${ps.length ? `<div class="tbl-wrap"><table><thead><tr><th>Paper</th><th>Status</th><th>Progress</th><th>Last read</th><th>Tags</th></tr></thead><tbody>${rows}</tbody></table></div>`
-      : `<div class="empty">No papers here yet. Drop PDFs anywhere on this page, or use Add PDFs.</div>`}
+      : q ? `<div class="empty">No paper's title, authors or tags match “${esc(q)}”.</div>` : `<div class="empty">No papers here yet. Drop PDFs anywhere on this page, or use Add PDFs.</div>`}
+    ${q ? `<section class="sec" aria-labelledby="sr-h"><div class="sec-h"><h2 id="sr-h">In your notes and highlights</h2></div>${searchHTML(scope, S.ui.q.trim())}</section>` : ""}
   </div>`;
 }
 
@@ -1158,6 +1160,59 @@ async function jumpTo(n, top){
   setCurrent(n);
 }
 
+/* ---------------- search inside the library ---------------- */
+// Every word must appear (any order); case and accents are ignored. Searches highlight text and comments,
+// each line of the notes, and session takeaways, within the papers the current filter shows.
+const fold = s => String(s || "").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const qWords = q => fold(q).split(/\s+/).filter(Boolean);
+const hasAll = (text, words) => { const t = fold(text); return words.every(w => t.includes(w)); };
+const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function snippet(text, words, size = 150){
+  const t = String(text).replace(/\s+/g, " ").trim(), f = fold(t);
+  let at = Math.min(...words.map(w => { const i = f.indexOf(w); return i < 0 ? Infinity : i; }));
+  if (!isFinite(at)) at = 0;
+  const start = Math.max(0, at - 50), end = Math.min(t.length, start + size);
+  // fold() keeps string length for most text; mark on the original by matching each folded word's span
+  let out = esc(t.slice(start, end));
+  words.forEach(w => { out = out.replace(new RegExp(`(${reEsc(esc(w))})`, "gi"), "<mark>$1</mark>"); });
+  return (start ? "…" : "") + out + (end < t.length ? "…" : "");
+}
+function searchLibrary(papers, q){
+  const words = qWords(q); if (!words.length) return [];
+  const out = [];
+  for (const p of papers){
+    for (const h of p.highlights) if (hasAll(h.text + " " + (h.comment || ""), words))
+      out.push({p, kind:"highlight", page:h.page, h, html:snippet(h.text, words) + (h.comment && hasAll(h.comment, words) && !hasAll(h.text, words) ? `<span class="sr-cm">${snippet(h.comment, words, 100)}</span>` : "")});
+    (p.notes || "").split("\n").forEach((line, i) => {
+      if (!line.trim() || !hasAll(line, words)) return;
+      const m = /\b[pP]p?\.\s?(\d{1,4})/.exec(line);
+      out.push({p, kind:"note", page:m ? +m[1] : 0, line:i, html:snippet(line.replace(/^\s*(#{1,3}|[-*]|>)\s*/, ""), words)});
+    });
+    for (const s of p.sessions) if (s.note && hasAll(s.note, words)) out.push({p, kind:"session", page:s.from, s, html:snippet(s.note, words)});
+  }
+  return out;
+}
+function searchHTML(scope, q){
+  const res = searchLibrary(scope, q); if (!res.length) return `<div class="empty">Nothing in your notes, highlights or session takeaways matches “${esc(q)}”.</div>`;
+  const byPaper = new Map(); res.forEach(r => { if (!byPaper.has(r.p.id)) byPaper.set(r.p.id, []); byPaper.get(r.p.id).push(r); });
+  const shown = res.slice(0, 200), more = res.length - shown.length;
+  const label = {highlight:"Highlight", note:"Note", session:"Session"};
+  const item = r => {
+    const where = r.page ? `p. ${r.page}` : "notes";
+    const attrs = r.kind === "highlight" ? `data-act="open-hl" data-v="${r.p.id}" data-h="${r.h.id}"`
+      : `data-act="open-at" data-v="${r.p.id}" data-p="${r.page}" data-tab="${r.kind === "note" ? "notes" : "sessions"}" data-q="${esc(q)}"`;
+    return `<button class="sr-i" ${attrs}>${r.kind === "highlight" ? `<span class="dot" style="--c:var(--hl-${r.h.color})"></span>` : `<span class="sr-k">${label[r.kind]}</span>`}<span class="sr-t">${r.html}</span><span class="sr-p num">${where}</span></button>`;
+  };
+  return `${[...byPaper.entries()].map(([pid, rs]) => { const vis = rs.filter(r => shown.includes(r)); return vis.length ? `<div class="sr-g"><div class="sr-h">${esc(rs[0].p.title)}<span class="num">${rs.length}</span></div>${vis.map(item).join("")}</div>` : ""; }).join("")}
+    ${more > 0 ? `<div class="hint">${more} more matches not shown. Add a word to narrow the search.</div>` : ""}`;
+}
+// After opening a paper from a notes result: scroll to the matching line in the notes and flash it.
+function showNoteMatch(q){
+  const words = qWords(q), view = $("#mdView"); if (!view || !words.length) return;
+  const el = [...view.querySelectorAll("p,li,h1,h2,h3,blockquote")].find(e => hasAll(e.textContent, words)); if (!el) return;
+  el.scrollIntoView({block:"center"}); el.classList.remove("found"); void el.offsetWidth; el.classList.add("found");
+}
+
 /* ---------------- sessions: edit and delete ---------------- */
 function sessionRow(p, s){
   const when = `<span class="dt">${fmtDate(s.date)}<br>${fmtTime(s.date)}</span>`;
@@ -1288,6 +1343,7 @@ document.addEventListener("click", async e => {
     case "left-skip": $("#leftbar").hidden = true; try { localStorage.setItem(LEFTKEY, "skipped"); } catch(err){} break;
     case "filter": closeReader(); S.ui.view = "library"; S.ui.filter = v; save(); renderAll(); break;
     case "open": openReader(v); break;
+    case "open-at": { S.ui.tab = t.dataset.tab; if (S.ui.tab === "notes") S.ui.nmode = "preview"; const pg = +t.dataset.p, q = t.dataset.q; await openReader(v, pg ? {page:pg} : null); if (S.ui.tab === "notes") showNoteMatch(q); break; }
     case "open-hl": { const pp = getP(v), h = pp && pp.highlights.find(x => x.id === t.dataset.h); S.ui.tab = "highlights"; openReader(v, h ? {page:h.page, hl:h.id} : null); break; }
     case "add": $("#fileIn").click(); break;
     case "attach": $("#attachIn").click(); break;

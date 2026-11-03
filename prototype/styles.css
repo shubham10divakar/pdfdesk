@@ -392,3 +392,21 @@ kbd{font-family:var(--f-mono);font-size:11.5px;padding:1px 6px;border:1px solid 
 .toc-i.on{background:var(--accent-soft);color:var(--fg)}
 .toc-t{flex:1;min-width:0;overflow-wrap:anywhere}
 .toc-p{font-size:11.5px;color:var(--faint)}
+
+/* ---------- search inside the library ---------- */
+.sr-g{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;background:var(--raised);overflow:hidden}
+.sr-h{display:flex;justify-content:space-between;gap:12px;padding:9px 14px;font-family:var(--f-display);font-weight:600;font-size:14.5px;border-bottom:1px solid var(--line);background:var(--surface)}
+.sr-h .num{font-family:var(--f-mono);font-size:11.5px;color:var(--faint);font-weight:400}
+.sr-i{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:baseline;padding:9px 14px;border-top:1px solid var(--line);text-align:left;width:100%}
+.sr-i:first-of-type{border-top:0}
+.sr-g .sr-h + .sr-i{border-top:0}
+.sr-i:hover{background:var(--surface)}
+.sr-i .dot{justify-self:start;margin-left:4px}
+.sr-k{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--faint)}
+.sr-t{font-family:var(--f-display);font-size:14px;line-height:1.45;min-width:0;overflow-wrap:anywhere}
+.sr-t mark,.sr-cm mark{background:color-mix(in srgb, var(--hl-yellow) 70%, transparent);color:inherit;border-radius:2px;padding:0 1px}
+.sr-cm{display:block;font-family:var(--f-ui);font-size:12.5px;color:var(--muted);margin-top:2px}
+.sr-p{font-size:11.5px;color:var(--faint);white-space:nowrap}
+.md .found{animation:found 1.8s ease}
+@keyframes found{0%,45%{background:color-mix(in srgb, var(--accent) 18%, transparent)}100%{background:transparent}}
+@media (prefers-reduced-motion: reduce){ .md .found{animation:none;outline:2px solid var(--accent);outline-offset:2px} }
