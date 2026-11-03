@@ -10,7 +10,7 @@ Read this first, then `DEVELOPMENT.md`, `docs/architecture.md` (incl. "Where you
 A local-first research paper workspace: library + PDF reader + notes + reading-session history. The owner is a software engineer and ML researcher who reads many papers and wants a record of his reading over time, not just a file manager.
 
 ## Current state
-- `prototype/` is a no-build vanilla JS app. `app.js` is one IIFE (~1000 lines) organised in sections marked `/* ---------- name ---------- */`: storage, example library (`seed()`), sidebar, overview, library, reader, sessions, panel, markdown (`md()`), selection→highlight, import, export / import, events.
+- `prototype/` is a no-build vanilla JS app. `app.js` is one IIFE (~1500 lines) organised in sections marked `/* ---------- name ---------- */`: storage, example library (`seed()`), sidebar, overview, library, reader, sessions, panel, markdown (`md()`), selection→highlight, import, export / import, links in the PDF, contents (outline), re-anchoring, add by arXiv ID or DOI, search inside the library, sessions edit/delete, click a highlight on the page, events, boot.
 - State is one object `S = {papers, ui}` persisted via `save()` / `saveSoon()`; PDFs go through the `idb` helper. Two backends behind those (see architecture.md § Where your data lives): under `pdfdesk` the library folder via `/api/` (`pdfdesk/store.py`), on a static server localStorage + IndexedDB. Never write to localStorage/IndexedDB directly for library data; go through `save()` and `idb`. `boot()` at the bottom of `app.js` picks the backend.
 - Rendering is string templates + `innerHTML`. Events use one delegated `click` listener keyed on `data-act`.
 - The reader keeps runtime state in `R` (pdf handle, scale, current page, live session). `R` is null outside the reader.
@@ -43,6 +43,7 @@ See `docs/roadmap.md`. Phase 1 items are small and safe to do inside the prototy
 ## Do not
 - Add a build step or npm dependencies to `prototype/` (it should stay openable from a static server).
 - Add Python dependencies to `pdfdesk` 0.x; the stdlib is enough.
+- Let `pdfdesk/lookup.py` contact any host besides export.arxiv.org, arxiv.org and api.crossref.org, or put an unvalidated id into a URL (D-011).
 - Loosen the server's Host/Origin checks or answer CORS preflights: they are what stops other websites reading or writing the library.
 - Rename the browser storage keys (`researchdesk.v1`, IndexedDB `researchdesk`): 0.1.x libraries are found and moved into the folder by those names.
 - Store highlights only as rectangles: when adding anchoring, keep text + context too (see decisions.md D-004).

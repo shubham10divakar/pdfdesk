@@ -70,7 +70,9 @@ Select text on any page and pick a colour. Each colour has one job, so a page of
 - **Links work like in a PDF reader:** click a citation, a section or figure reference, or a contents entry to jump to the exact spot; web links open in a new tab. After following a link, **Back to p. N** (or `Alt+←`) returns you to exactly where you were.
 - Click a highlight in the panel to jump straight to it in the PDF: it scrolls to the page and flashes. It works the other way too: click a highlight on the page and the panel opens at it, ready for a comment.
 - Highlights store the selected text as well as their position, so they stay put when you zoom.
+- **Got a newer version of the PDF?** Replace it and your highlights find their text again, even on a different page or slightly reworded. Any that can't be found are kept and marked.
 - **Extract to notes** pulls every highlight into your notes, each with its page reference.
+- **Contents tab:** the PDF's own outline, with the section you're reading marked. Click a section to jump there.
 - **Make room for the page:** hide the sidebar and the notes panel (`[` and `]`, or the buttons at either end of the toolbar) and wide pages and slides get the full width.
 
 ## Notes that point back to the page
@@ -94,7 +96,8 @@ Every paper has a place in the reading lifecycle:
 
 - Opening a paper moves it to *Reading*. When you reach the last page, PDFDesk asks whether it's *Completed* or worth a *Revisit*.
 - **Import** by button or drag and drop. Title, authors and page count come from the PDF itself.
-- **Search** by title, author or tag from anywhere.
+- **Search everything** from the sidebar: titles, authors and tags, and inside your highlights, comments, notes and session takeaways. Each result opens the right page.
+- **Add by arXiv ID or DOI:** paste `1706.03762` or a DOI, and the title, authors, year and venue are filled in. arXiv papers come with their PDF.
 - **Tags** in the sidebar, with counts, for one-click filtering.
 - See each paper's status, progress bar, pages read and when you last opened it.
 - Set a **target page and date** ("finish section 3 by Friday") and it shows up in *Up next*.
@@ -108,6 +111,7 @@ PDFDesk logs each sitting with a paper on its own:
 - **A takeaway**: an optional line on what you got out of the session.
 - **Resume where you left off**: every paper reopens at your last page.
 - **Bookmarks** for pages you'll come back to.
+- **Fix a session** logged by mistake: edit its pages, minutes or takeaway, or delete it.
 
 ## Your reading, at a glance
 
@@ -177,11 +181,10 @@ Upgrade any time with `pip install -U pdfdesk`.
 
 ## What's coming
 
-PDFDesk is at **0.1**, an early release. Next up:
+PDFDesk is at **0.2**, an early release. Next up:
 
-- **arXiv and DOI import**: paste an id and the title, authors, year and venue fill themselves in.
-- **Full-text search** across notes and highlights.
-- **PDF outline** in the sidebar, from the paper's table of contents.
+- **Recolour instead of duplicate:** highlighting text that's already highlighted will offer to change its colour.
+- **Reference preview:** hover over a citation to read the reference without jumping.
 - **PDFDesk 1.0** as a native desktop app (Tauri + SQLite), installed the same way, with `pip install -U pdfdesk`.
 - Later: links between papers, spaced revision, weekly reading reports, Zotero import.
 

@@ -412,10 +412,12 @@ const FEATURES = [
     "Every paper moves through Inbox, Planned, Reading, Paused, Completed and Revisit",
     "Opening a paper moves it to Reading; reaching the last page asks for Completed or Revisit",
     "Import with the button or drag and drop; title, authors and page count come from the PDF",
-    "Search by title, author or tag, and filter by status or tag from the sidebar",
+    "Search titles, authors and tags, and inside highlights, notes and session takeaways; each result opens the right page",
+    "Add a paper by arXiv ID or DOI: details filled in, arXiv PDFs downloaded",
     "Set a target page and date; it shows up in Up next"]],
   ["Reader", [
     "Sharp PDF rendering with selectable text",
+    "A Contents tab from the PDF's outline, marking the section you're reading",
     "Zoom, jump to a page, bookmarks",
     "Every paper reopens at the page you left it on",
     "Links in the PDF work: citations, section and figure references jump to the exact spot, web links open in a new tab",
@@ -425,6 +427,7 @@ const FEATURES = [
   ["Highlights", [
     "Four colours, each with one meaning: yellow key idea, green method or result, blue definition, pink question",
     "Comment on any highlight and filter the list by colour",
+    "Replace a PDF with a newer version and highlights find their text again",
     "Click a highlight in the panel to jump to it on the page, or click it on the page to open it in the panel",
     "Highlights keep their text and position, so they stay put when you zoom",
     "Extract to notes pulls every highlight into your notes with its page"]],
@@ -434,6 +437,7 @@ const FEATURES = [
     "Cite the page you're on, insert highlights, copy everything as Markdown"]],
   ["Reading sessions", [
     "Each sitting is logged with the pages you covered",
+    "Edit or delete a session logged by mistake",
     "Only active time counts: the clock pauses when the tab is hidden or you're idle for 3 minutes",
     "Add a one-line takeaway at the end of a session"]],
   ["Overview", [

@@ -43,3 +43,7 @@ PDF.js 3.11.174 and Latin/Latin Extended subsets of the three fonts live in `pro
 The Python server stores the library in a folder (`~/PDFDesk` by default): `library.json`, real PDF files in `pdfs/`, daily backups. The app uses it whenever the server's API answers, and falls back to browser storage on a plain static server.
 *Why:* browser storage is per origin and per browser, so another port or browser showed an empty library and clearing site data deleted everything. Export/import only works around that by hand. The folder layout is the one 1.x will use, so 0.2 users already have their data where the desktop app expects it.
 *Spec:* [disk-storage.md](disk-storage.md).
+
+## D-011 · Paper lookups go through the local server, to three fixed hosts (2026-11-03)
+Adding a paper by arXiv ID or DOI is done by `pdfdesk` (`pdfdesk/lookup.py`), which only ever contacts `export.arxiv.org`, `arxiv.org` and `api.crossref.org`, with the id validated before it goes into a URL. On a plain static server the feature explains it needs `pdfdesk`.
+*Why:* arXiv doesn't allow cross-site requests from a web page, and the PDF has to end up in the library folder anyway. Fixed hosts mean the endpoint can't be turned into a way to fetch arbitrary URLs.

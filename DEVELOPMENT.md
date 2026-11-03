@@ -51,7 +51,7 @@ The download badges in README.md (pepy.tech, shields.io) show "not found" until 
 ## Tests
 
 ```bash
-python -m unittest discover -s tests     # library folder + HTTP API (no browser needed)
+python -m unittest discover -s tests     # library folder, HTTP API, arXiv/DOI lookup with canned replies (no browser, no network)
 npm run check                            # syntax of app.js
 ```
 
@@ -61,6 +61,18 @@ npm run check                            # syntax of app.js
 chrome --headless=new --remote-debugging-port=9337 --user-data-dir=<temp dir> about:blank
 node scripts/e2e/disk-storage.mjs 9337 <abs path>/sample-paper.pdf <abs empty work dir>   # from the repo root
 ```
+
+More end-to-end scripts (each prints PASS/FAIL lines; all except add-by-id run against the static server, `npm run dev:static -- 5193`):
+
+| Script | Checks | Arguments |
+|---|---|---|
+| `outline.mjs` | Contents tab: entries and pages, jump + Back, current section, hidden for PDFs without an outline (10) | `<port> <appUrl> <outDir> <abs>/links-paper.pdf` (prints its own outlined fixture) |
+| `sessions.mjs` | Edit and delete sessions, validation, Escape/Enter, overview follows, list keeps its scroll (12) | `<port> <appUrl>` |
+| `search.mjs` | Highlights, note lines, session takeaways; order/case/accents; where each result leads; filter scope (13) | `<port> <appUrl>` |
+| `reanchor.mjs` | Same file back in place; moved, repeated, reworded and removed text in a new version (14) | `<port> <appUrl> <outDir>` (prints `fixtures/reanchor-v1/-v2.html`) |
+| `add-by-id.mjs` | arXiv with PDF, duplicates, DOI, bad and unknown ids, static-server message (12). **Needs internet.** | `<port> <abs empty work dir>` (starts its own servers) |
+
+Each script resets the site's storage first, by leaving the page and clearing it over the DevTools protocol (the app saves on unload, so clearing while the page is open doesn't stick).
 
 `scripts/e2e/links.mjs` checks links inside PDFs with real mouse clicks: citations, figure and section references land on the exact spot, web links open in a new tab, text outside links stays selectable, and Back (button and Alt+←) returns to the exact spot, in order, without navigating the browser away (15 checks). It needs a PDF with links: print the fixture with `chrome --headless --no-pdf-header-footer --print-to-pdf=links-paper.pdf scripts/e2e/fixtures/links-paper.html` (Chrome keeps HTML links as PDF link annotations), then `node scripts/e2e/links.mjs <chromeDebugPort> <appUrl> <abs path>/links-paper.pdf [outDir]`.
 
@@ -101,12 +113,13 @@ Alternative without Node: `cd prototype && python -m http.server 5173`.
 
 | Area | Features |
 |---|---|
-| Library | Import PDFs (button or drag-drop), title/author from PDF metadata, search, tags, status filters |
+| Library | Import PDFs (button or drag-drop), title/author from PDF metadata, add by arXiv ID or DOI, tags, status filters |
+| Search | Titles, authors, tags, plus highlights, comments, note lines and session takeaways; results open the right page |
 | Lifecycle | Inbox → Planned → Reading → Paused → Completed → Revisit. Opening a paper moves it to Reading. Reaching the last page prompts for Completed or Revisit |
-| Reader | PDF.js rendering with a text layer, lazy page rendering, zoom, page jump, bookmarks, resume at last page, `j`/`k` or arrow keys to change page, `b` to bookmark |
-| Highlights | Select text → 4 colours with meanings (yellow key idea, green method/result, blue definition, pink question). Optional comment per highlight. Click to jump back |
+| Reader | PDF.js rendering with a text layer, lazy page rendering, zoom, page jump, bookmarks, resume at last page, links in the PDF with Back, Contents tab, collapsible sidebar and panel (`[` `]`), `j`/`k` or arrow keys to change page, `b` to bookmark |
+| Highlights | Select text → 4 colours with meanings (yellow key idea, green method/result, blue definition, pink question). Optional comment per highlight. Click a card to see it on the page, or a highlight on the page to open its card. Re-found by text when the PDF is replaced |
 | Notes | Per-paper Markdown notes. `p. 12` becomes a link to that page. "Insert highlights" pulls highlights into notes with page refs. "Cite p. N" inserts the current page |
-| Sessions | Active reading time (pauses after 3 min idle or when the tab is hidden), page range covered, optional takeaway note. Auto-logged when you leave a paper |
+| Sessions | Active reading time (pauses after 3 min idle or when the tab is hidden), page range covered, optional takeaway note. Auto-logged when you leave a paper. Edit or delete from the Sessions tab |
 | Library on disk | Under `pdfdesk`, a folder with library.json, real PDFs and daily backups; any port or browser shows the same library; two windows merge without losing edits; 0.1.x browser libraries move in |
 | Export / import | One `.zip` with library.json, PDFs and Markdown notes; small `.json` backup without PDFs; import previews, then merges (never deletes) or replaces after a second confirmation; drop an export to import |
 | Overview | Stats, continue-reading list, 17-week reading heatmap with streak, up-next queue with target dates, daily revision queue of past highlights, reading log |
@@ -127,7 +140,9 @@ scripts/
 pdfdesk/
   cli.py          the `pdfdesk` command: stdlib server, /api/ for the library, open browser
   store.py        the library folder: library.json, pdfs/, backups (atomic writes, rev checks)
-tests/            unittest suite for the server and store
+  lookup.py       arXiv / Crossref lookups for Add by arXiv ID or DOI (three fixed hosts)
+tests/            unittest suites: server + store, lookup (no network)
+scripts/e2e/      headless-Chrome end-to-end scripts, fixtures/ holds the HTML test papers
 pyproject.toml    package metadata; the wheel bundles prototype/ as pdfdesk/static/
 docs/
   assets/         screenshots used by README.md

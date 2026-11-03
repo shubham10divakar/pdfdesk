@@ -34,6 +34,10 @@ Default `~/PDFDesk` (on Windows `C:\Users\<you>\PDFDesk`). Change it with `pdfde
 | `GET /api/pdf/<id>` | the PDF bytes, `404` if missing |
 | `PUT /api/pdf/<id>` | body is the PDF; saved atomically |
 | `DELETE /api/pdf/<id>` | removes it |
+| `POST /api/open-folder` | opens the library folder in File Explorer / Finder / the Linux default |
+| `POST /api/lookup` | body `{query, id}`: looks the paper up on arXiv or Crossref and, for arXiv, saves the PDF as `pdfs/<id>.pdf`; returns `{paper, hasFile}` |
+
+The two `POST` actions reach outside the library (a program, the internet), so they also require the app's own `Origin` and a JSON content type, which other sites can't send without a CORS preflight.
 
 - **`rev`** is the file's modification time and size (`<mtime_ns>-<size>`), so two `pdfdesk` processes on different ports sharing one folder still see each other's changes.
 - **Atomic writes:** write to a temp file in the same folder, then `os.replace`. A crash never leaves a half-written `library.json`.

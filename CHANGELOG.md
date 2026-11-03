@@ -4,6 +4,11 @@ All notable changes to PDFDesk. Versions follow [semantic versioning](https://se
 
 ## Unreleased
 
+- **Add a paper by arXiv ID or DOI.** Paste `1706.03762`, an arXiv link, a DOI or a doi.org link: title, authors, year and venue are filled in, and arXiv papers come with their PDF. A paper you already have opens instead of being added twice. Needs PDFDesk started with the `pdfdesk` command.
+- **Highlights survive a new version of the PDF.** Replace a paper's PDF (say, a newer arXiv version) and every highlight is found again by its text, even if it moved to another page or was slightly reworded. Highlights that can't be found are kept with their comments and marked "Not found in this PDF". New highlights also remember the text around them, so a phrase that appears twice lands on the right one.
+- **Search your notes and highlights.** The sidebar search now also looks inside highlights and their comments, every line of your notes, and session takeaways. Results are grouped by paper with the words marked; clicking one opens the right page, highlight or note line. Word order, case and accents don't matter.
+- **Fix or delete a session.** Each session in the Sessions tab has Edit (pages, minutes, takeaway) and Delete (asks first). The overview's stats and calendar follow.
+- **Contents tab.** For PDFs with an outline, a Contents tab lists the sections with their pages. Click one to jump there (Back returns), and the section you're reading is marked as you scroll.
 - **Back after following a link.** Read the reference, then press **Back to p. N** in the toolbar, `Alt+←`, or your mouse's back button to return to exactly where you were. Following several links and going back retraces them in order.
 - **Links in the PDF work.** Citations like `[12]`, "Section 3", "Figure 2" and contents pages jump to the exact spot they point to; web links (DOIs, arXiv, GitHub) open in a new tab, with the address shown on hover. Only safe web addresses (http, https, mailto) are followed.
 - **Click a highlight on the page to find it in the panel.** The pointer turns into a hand over highlights; a click opens the Highlights tab (showing the panel if you'd hidden it), scrolls to that highlight and flashes it, ready for a comment. Dragging to select text works as before.

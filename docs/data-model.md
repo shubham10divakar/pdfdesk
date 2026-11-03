@@ -21,6 +21,8 @@ The same paper objects are stored in two places depending on the mode (architect
       "id": "…", "page": 4, "color": "yellow",   // yellow|green|blue|pink
       "text": "selected text",
       "rects": [{"x":0.1,"y":0.2,"w":0.5,"h":0.015}],  // page-relative, null if unknown
+      "prefix": "…text just before", "suffix": "text just after…",  // up to 48 chars each, for re-anchoring
+      "lost": true,                                // only when a replaced PDF no longer contains the text
       "comment": "", "at": 1762170000000
     }],
     "sessions": [{
@@ -29,6 +31,7 @@ The same paper objects are stored in two places depending on the mode (architect
     }],
     "bookmarks": [5],
     "target": {"page": 13, "date": "2026-11-04"}, // or null
+    "arxiv": "1706.03762", "doi": "", "url": "https://arxiv.org/abs/1706.03762",  // set when added by arXiv ID or DOI
     "addedAt": 0, "lastOpened": 0, "lastPage": 12, "maxPage": 12
   }],
   "ui": {"view":"home","filter":"all","tab":"notes","nmode":"preview","hlFilter":"all","zoom":1,"q":"",

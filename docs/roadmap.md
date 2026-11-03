@@ -6,23 +6,34 @@ Browser app in `prototype/`. Library, lifecycle, PDF reader, highlights, notes w
 ## Phase 1: make the prototype usable day to day
 Small changes, no build step.
 
-- [x] **Library on disk under `pdfdesk`** (0.2.0): `~/PDFDesk/` with library.json + real PDF files + daily backups, so any port or browser shows the same library and clearing browser data deletes nothing. Browser libraries move in automatically. Spec: [disk-storage.md](disk-storage.md), decision D-010
-- [x] **Export / import** the whole library as one `.zip` (library.json + PDFs + readable Markdown notes); import merges without deleting. Spec: [export-import.md](export-import.md). **Do this next:** it must ship in a 0.x release before 1.x, or 0.x users lose their library when they upgrade. It also rescues data stranded on another port or browser
-- [ ] **arXiv / DOI import**: paste an id, fill title, authors, year, venue (arXiv API, Crossref)
-- [ ] **Full-text search** across notes and highlights (simple in-memory index)
-- [ ] **Highlight re-anchoring**: store prefix/suffix text and re-find highlights when a PDF is replaced
-- [x] **Click a highlight on the page** to open its comment
-- [ ] **Session edit/delete** for mistaken sessions
-- [ ] **Outline sidebar** from the PDF's table of contents (`pdf.getOutline()`)
-- [x] Vendor PDF.js and fonts locally so the app works offline (D-009)
+Done:
+- [x] **Library on disk under `pdfdesk`** (0.2.0): `~/PDFDesk/` with library.json, real PDF files and daily backups, so any port or browser shows the same library and clearing browser data deletes nothing. Browser libraries move in automatically. Spec: [disk-storage.md](disk-storage.md), decision D-010
+- [x] **Export / import** the whole library as one `.zip` (library.json, PDFs, readable Markdown notes); import merges without deleting. Spec: [export-import.md](export-import.md)
+- [x] **Vendor PDF.js and fonts** so the app works offline (D-009)
+- [x] **Zoomed pages scroll to both edges** (0.2.2)
+- [x] **Collapsible sidebar and notes panel** (`[` and `]`); pages re-fit to the freed width
+- [x] **Panel and page link up**: click a highlight card to see it on the page; `p. N` links next to a quoted highlight jump to that highlight; click a highlight on the page to open its card
+- [x] **Links in the PDF work** (citations, cross-references, contents pages, web links) with **Back** (button, `Alt+←`, mouse back button)
+- [x] **Contents tab** from the PDF's outline: jump to a section (with Back), the current section is marked
+- [x] **Session edit/delete** for sessions logged by mistake
+- [x] **Search** across notes, highlights and session takeaways from the sidebar; each result opens the right page, highlight or note line
+- [x] **Add by arXiv ID or DOI**: details from arXiv / Crossref, arXiv PDFs downloaded into the library folder (needs `pdfdesk`; D-011)
+- [x] **Highlight re-anchoring**: highlights keep the text around them; replacing a PDF finds each one again by its text (also when slightly reworded), and any that can't be found are kept and marked
+
+Still open:
+- [ ] **Same text, new colour**: highlighting text that's already highlighted offers to change its colour (with Undo) instead of adding a duplicate; change a highlight's colour from its card
+- [ ] **Insert highlights adds only what's new**, not every highlight again
+- [ ] **Reference preview on hover**: show the cited reference in a pop-up without jumping
+- [ ] **"Last export" date** kept in the library folder rather than per browser
+- [ ] Search inside the PDFs' own text (Phase 2 does this with FTS5; in the prototype it would mean indexing every page on import)
 
 ## Distribution: pip (`pdfdesk`)
 See decisions.md D-008. One package name and one command across both stacks.
 
 - [x] **0.1.0**: wheel bundles `prototype/` + stdlib server; `pdfdesk` opens it at http://localhost:5173
-- [ ] Publish 0.x to PyPI (MIT licence chosen; needs a PyPI account and an API token)
-- [x] **0.2.1**: export/import + library on disk + open the folder from the app (on PyPI)
-- [ ] **0.2.2**: zoom scrolling fix (tagged; publish to PyPI)
+- [x] **0.2.1**: export/import, library on disk, open the folder from the app (on PyPI; 0.1.1 and 0.2.0 were tagged but never published)
+- [x] **0.2.2**: zoom scrolling fix (on PyPI)
+- [ ] **0.3.0**: everything under "Unreleased" in CHANGELOG.md (built and tested, not yet released)
 - [ ] **1.x**: platform wheels carrying the Tauri binary (Windows x64, macOS x64 + arm64, Linux x64), built in CI; `pdfdesk` launches the app. Consider pytauri if the backend should be Python
 - [ ] 1.x first run: offer to import a 0.x export file
 - [ ] Optional native installers (`.msi`, `.dmg`) alongside pip
