@@ -62,6 +62,8 @@ chrome --headless=new --remote-debugging-port=9337 --user-data-dir=<temp dir> ab
 node scripts/e2e/disk-storage.mjs 9337 <abs path>/sample-paper.pdf <abs empty work dir>   # from the repo root
 ```
 
+`scripts/e2e/jump.mjs` checks moving between the panel and the page (11 checks): clicking a highlight card, note links that quote a highlight (and a plain `p. N` that doesn't), the hand cursor and real mouse clicks on a highlight, reopening a hidden panel, and that a click ending a text selection doesn't open anything. `node scripts/e2e/jump.mjs <chromeDebugPort> <appUrl> <abs path>/sample-paper.pdf` (static server is fine).
+
 `scripts/e2e/collapse.mjs` checks the collapsible sidebar and notes panel: `[` and `]`, pages re-fitting wider without losing your place, the floating button outside the reader, and the choice surviving a reload. Same arguments as zoom.mjs.
 
 `scripts/e2e/zoom.mjs` checks that a page zoomed to 250% can be scrolled to both edges and that a page at 100% stays centred: `node scripts/e2e/zoom.mjs <chromeDebugPort> <appUrl> <abs path>/sample-paper.pdf <outDir>` (static server is fine).
