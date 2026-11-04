@@ -225,6 +225,7 @@ function seed(){
 
 const getP = id => S.papers.find(p => p.id === id);
 const progress = p => p.pages ? Math.min(1, (p.maxPage||0)/p.pages) : 0;
+const isLink = p => !p.hasFile && !p.sample;   // saved as a link (title, abstract, URL), no PDF yet
 
 /* ---------------- sidebar ---------------- */
 function renderSide(){
@@ -232,18 +233,19 @@ function renderSide(){
   const tags = {};
   S.papers.forEach(p => { counts[p.status]++; p.tags.forEach(t => tags[t] = (tags[t]||0)+1); });
   const f = S.ui.view === "library" ? S.ui.filter : null;
-  const hasEx = S.papers.some(p => p.sample);
+  const hasEx = S.papers.some(p => p.sample), nLink = S.papers.filter(isLink).length;
   $("#side").innerHTML = `
     <div class="brand-wrap">
       <div class="brand"><b>PDFDesk</b><span>local</span><button class="icon-b side-x" data-act="side" title="Hide the sidebar ( [ )" aria-label="Hide the library sidebar">${ICON.sideL}</button></div>
       <button class="byline" data-act="about" title="About PDFDesk and its author">Built by ${esc(AUTHOR.name)} with ${HEART}<span class="vh">love</span></button>
     </div>
     <button class="btn primary" data-act="add">+ Add PDFs</button>
-    <button class="add-id" data-act="add-id">Add by arXiv ID or DOI</button>
+    <div class="add-more"><button class="add-id" data-act="add-id">Add by arXiv ID or DOI</button><button class="add-id" data-act="add-link">Add by link, without the PDF</button></div>
     <input class="search" id="q" type="search" placeholder="Search papers and notes" value="${esc(S.ui.q)}" aria-label="Search papers">
     <nav class="nav">
       <button class="nav-i ${S.ui.view==="home"?"on":""}" data-act="home">Overview</button>
       <button class="nav-i ${f==="all"?"on":""}" data-act="filter" data-v="all">All papers <span class="ct">${S.papers.length}</span></button>
+      ${nLink ? `<button class="nav-i ${f==="nopdf"?"on":""}" data-act="filter" data-v="nopdf">No PDF yet <span class="ct">${nLink}</span></button>` : ""}
       <button class="nav-i ${S.ui.view==="about"?"on":""}" data-act="about">About</button>
     </nav>
     <div>
@@ -278,8 +280,8 @@ function homeHTML(){
   const cont = reading.length ? `<div class="cont">${reading.slice(0,4).map(p => `
       <button class="cont-i" data-act="open" data-v="${p.id}">
         <span class="t">${esc(p.title)}${p.sample?'<span class="ex">example</span>':""}</span>
-        <span class="go">Resume p. ${p.lastPage} →</span>
-        <span class="m">${rel(p.lastOpened)} · page ${p.lastPage} of ${p.pages} · ${Math.round(progress(p)*100)}%</span>
+        <span class="go">${isLink(p) ? "Open →" : `Resume p. ${p.lastPage} →`}</span>
+        <span class="m">${isLink(p) ? `${rel(p.lastOpened)} · saved as a link, no PDF yet` : `${rel(p.lastOpened)} · page ${p.lastPage} of ${p.pages} · ${Math.round(progress(p)*100)}%`}</span>
         <span class="bar"><i style="width:${progress(p)*100}%"></i></span>
       </button>`).join("")}</div>` : `<div class="empty">Nothing in progress. Open a paper from your Inbox or Planned list to start.</div>`;
 
@@ -348,22 +350,23 @@ function libHTML(){
   let ps = S.papers.slice();
   let title = "All papers", sub = "Everything you've imported.";
   if (f.startsWith("tag:")) { const t = f.slice(4); ps = ps.filter(p => p.tags.includes(t)); title = "#"+t; sub = "Papers with this tag."; }
+  else if (f === "nopdf") { ps = ps.filter(isLink); title = "No PDF yet"; sub = "Papers saved as a link. Attach the PDF when you get it."; }
   else if (f !== "all") { ps = ps.filter(p => p.status === f); title = SLABEL[f]; sub = {inbox:"Imported, not yet evaluated.", planned:"You intend to read these.", reading:"Currently open on your desk.", paused:"Started, then set aside.", completed:"Finished.", revisit:"Worth reading again."}[f]; }
   const scope = ps.slice();
-  if (q) ps = ps.filter(p => hasAll(p.title+" "+p.authors+" "+p.tags.join(" ")+" "+p.venue+" "+(p.year||""), qWords(q)));
+  if (q) ps = ps.filter(p => hasAll(p.title+" "+p.authors+" "+p.tags.join(" ")+" "+p.venue+" "+(p.year||"")+" "+(p.abstract||""), qWords(q)));
   ps.sort((a,b) => (b.lastOpened||b.addedAt||0) - (a.lastOpened||a.addedAt||0));
   const rows = ps.map(p => `<tr data-act="open" data-v="${p.id}">
-      <td style="max-width:420px"><div class="t">${esc(p.title)}${p.sample?'<span class="ex">example</span>':""}</div><div class="a">${esc(p.authors)} · ${esc(p.venue)} ${p.year||""}</div></td>
+      <td style="max-width:420px"><div class="t">${esc(p.title)}${p.sample?'<span class="ex">example</span>':isLink(p)?'<span class="ex" title="Saved as a link, no PDF yet">link</span>':""}</div><div class="a">${esc(p.authors)} · ${esc(p.venue)} ${p.year||""}</div></td>
       <td>${pill(p.status)}</td>
-      <td><div class="prog"><span class="bar" style="--c:${scol(p.status)}"><i style="width:${progress(p)*100}%"></i></span><span class="num">${p.maxPage||0}/${p.pages||"?"}</span></div></td>
+      <td>${isLink(p) ? `<span class="no-pdf">No PDF</span>` : `<div class="prog"><span class="bar" style="--c:${scol(p.status)}"><i style="width:${progress(p)*100}%"></i></span><span class="num">${p.maxPage||0}/${p.pages||"?"}</span></div>`}</td>
       <td class="num" style="font-size:12px;color:var(--muted);white-space:nowrap">${rel(p.lastOpened)}</td>
       <td><div class="row">${p.tags.slice(0,3).map(t => `<span class="tag">${esc(t)}</span>`).join("")}</div></td>
     </tr>`).join("");
   return `<div class="wrap">
     <div class="head-row"><div><div class="eyebrow">Library${q?` · matching “${esc(q)}”`:""}</div><h1 class="page-h">${esc(title)}</h1><p class="sub">${sub} <span class="num">${ps.length}</span> ${ps.length===1?"paper":"papers"}.</p></div>
-      <div class="row"><button class="btn" data-act="add-id">Add by arXiv ID or DOI</button><button class="btn" data-act="add">+ Add PDFs</button></div></div>
+      <div class="row"><button class="btn" data-act="add-link">Add by link</button><button class="btn" data-act="add-id">Add by arXiv ID or DOI</button><button class="btn" data-act="add">+ Add PDFs</button></div></div>
     ${ps.length ? `<div class="tbl-wrap"><table><thead><tr><th>Paper</th><th>Status</th><th>Progress</th><th>Last read</th><th>Tags</th></tr></thead><tbody>${rows}</tbody></table></div>`
-      : q ? `<div class="empty">No paper's title, authors or tags match “${esc(q)}”.</div>` : `<div class="empty">No papers here yet. Drop PDFs anywhere on this page, or use Add PDFs.</div>`}
+      : q ? `<div class="empty">No paper's title, authors, tags or abstract match “${esc(q)}”.</div>` : `<div class="empty">No papers here yet. Drop PDFs anywhere on this page, or use Add PDFs.</div>`}
     ${q ? `<section class="sec" aria-labelledby="sr-h"><div class="sec-h"><h2 id="sr-h">In your notes and highlights</h2></div>${searchHTML(scope, S.ui.q.trim())}</section>` : ""}
   </div>`;
 }
@@ -525,6 +528,7 @@ const ICON = {
 async function openReader(id, jump){
   closeReader();
   const p = getP(id); if (!p) return;
+  if (isLink(p)) return openLinkPaper(p);
   if (p.status === "inbox" || p.status === "planned" || p.status === "paused") p.status = "reading";
   p.lastOpened = Date.now();
   S.ui.view = "reader"; S.ui.open = id;
@@ -555,6 +559,45 @@ async function openReader(id, jump){
   markTocCurrent(R ? R.current : 1);
   if (jump) goPage(jump.page, jump.hl);
   updateBanner(); updateBm();
+}
+
+// A paper saved as a link: its details and abstract stand in for the pages. Notes work as usual; no reading
+// session is recorded, and the status is left as it is, since nothing is being read here.
+function openLinkPaper(p){
+  p.lastOpened = Date.now();
+  S.ui.view = "reader"; S.ui.open = p.id;
+  if (S.ui.tab === "highlights" || S.ui.tab === "contents" || S.ui.tab === "sessions") S.ui.tab = "notes";
+  R = {id:p.id, link:true, hist:[], pdf:null, gen:0, current:1, numPages:1, baseW:612, baseH:792, scale:1, rendered:new Set(), obs:null, pending:null, session:null};
+  renderSide();
+  const m = $("#main"); m.classList.add("is-reader");
+  m.innerHTML = `<div class="reader${S.ui.panelOff ? " panel-off" : ""}">
+    <div class="r-center">
+      <div class="r-bar">
+        <button class="icon-b tg-side" data-act="side" aria-pressed="${!S.ui.sideOff}">${ICON.sideL}</button>
+        <button class="icon-b" data-act="home" title="Back to overview" aria-label="Back">${ICON.back}</button>
+        <div class="r-title" title="${esc(p.title)}">${esc(p.title)}</div>
+        <span class="r-of">No PDF yet</span>
+        <button class="icon-b tg-panel" data-act="panel" aria-pressed="${!S.ui.panelOff}">${ICON.sideR}</button>
+      </div>
+      <div class="link-desk" id="linkPage">${linkPageHTML(p)}</div>
+    </div>
+    <aside class="r-panel" id="panel"></aside>
+  </div>`;
+  renderPanel(); applyLayout(); save();
+}
+function linkHost(u){ try { return new URL(u).hostname.replace(/^www\./, ""); } catch(e){ return ""; } }
+function linkPageHTML(p){
+  const ok = p.url && SAFE_URL.test(p.url);
+  const paras = String(p.abstract || "").trim().split(/\n\s*\n/).filter(Boolean);
+  return `<article class="link-paper">
+    ${p.venue || p.year ? `<div class="lp-v">${esc(p.venue)} ${esc(p.year || "")}</div>` : ""}
+    <h1>${esc(p.title)}</h1>
+    ${p.authors ? `<div class="lp-au">${esc(p.authors)}</div>` : ""}
+    <div class="row lp-acts">${ok ? `<a class="btn primary" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">Open paper ↗</a><span class="lp-host num">${esc(linkHost(p.url))}</span>` : `<span class="hint">No link saved. Add one in Details.</span>`}</div>
+    <h2>Abstract</h2>
+    ${paras.length ? paras.map(t => `<p>${esc(t)}</p>`).join("") : `<p class="lp-none">No abstract saved. Paste it in Details → Abstract.</p>`}
+    <div class="lp-pdf"><span>No PDF yet. When you get it, attach it here: it opens in the reader, and your notes and tags stay.</span><button class="btn sm" data-act="attach">Attach PDF</button></div>
+  </article>`;
 }
 
 async function loadDoc(p){
@@ -733,15 +776,17 @@ function renderPanel(){
   const keep = el.dataset.tab === S.ui.tab ? (el.querySelector(".pbody")?.scrollTop || 0) : 0;
   const hasToc = !!(R.outline && R.outline.length);
   const tab = S.ui.tab === "contents" && !hasToc ? "notes" : S.ui.tab;   // until the outline loads (or if there is none)
-  const tabs = [["notes","Notes",""],["highlights","Highlights",p.highlights.length],...(hasToc ? [["contents","Contents",""]] : []),["sessions","Sessions",p.sessions.length],["details","Details",""]];
+  const tabs = R.link   // a paper without its PDF: no pages to highlight, cite or time (old highlights/sessions still show)
+    ? [["notes","Notes",""],...(p.highlights.length ? [["highlights","Highlights",p.highlights.length]] : []),...(p.sessions.length ? [["sessions","Sessions",p.sessions.length]] : []),["details","Details",""]]
+    : [["notes","Notes",""],["highlights","Highlights",p.highlights.length],...(hasToc ? [["contents","Contents",""]] : []),["sessions","Sessions",p.sessions.length],["details","Details",""]];
   let body = "";
   if (tab === "notes"){
     const mode = S.ui.nmode;
     body = `<div class="row" style="justify-content:space-between"><div class="seg"><button class="${mode==="edit"?"on":""}" data-act="nmode" data-v="edit">Write</button><button class="${mode==="preview"?"on":""}" data-act="nmode" data-v="preview">Read</button></div>
-      <div class="row"><button class="btn sm" data-act="cite">Cite p. <span id="citeN" class="num">${R.current}</span></button><button class="btn sm" data-act="ins-hl">Insert highlights</button><button class="btn sm ghost" data-act="copy-notes">Copy</button></div></div>
-      ${mode==="edit" ? `<textarea class="note-ta" id="noteTa" spellcheck="true" placeholder="Your notes on this paper. Markdown works: ## headings, - bullets, > quotes. Write p. 4 to link a page.">${esc(p.notes)}</textarea>`
+      <div class="row">${R.link ? "" : `<button class="btn sm" data-act="cite">Cite p. <span id="citeN" class="num">${R.current}</span></button><button class="btn sm" data-act="ins-hl">Insert highlights</button>`}<button class="btn sm ghost" data-act="copy-notes">Copy</button></div></div>
+      ${mode==="edit" ? `<textarea class="note-ta" id="noteTa" spellcheck="true" placeholder="${R.link ? "Your notes on this paper: what it claims, why it matters, what to check when you get the PDF. Markdown works: ## headings, - bullets, > quotes." : "Your notes on this paper. Markdown works: ## headings, - bullets, > quotes. Write p. 4 to link a page."}">${esc(p.notes)}</textarea>`
         : `<div class="md" id="mdView">${p.notes.trim() ? md(p.notes) : `<p style="color:var(--muted)">No notes yet. Switch to Write, or select text in the paper and choose Add note.</p>`}</div>`}
-      <div class="hint">Saved automatically. Page references like p. 12 become links back into the PDF.</div>`;
+      <div class="hint">${R.link ? "Saved automatically." : "Saved automatically. Page references like p. 12 become links back into the PDF."}</div>`;
   } else if (tab === "highlights"){
     const f = S.ui.hlFilter;
     const hs = p.highlights.filter(h => f==="all" || h.color===f).sort((a,b) => a.page - b.page || a.at - b.at);
@@ -757,26 +802,28 @@ function renderPanel(){
     body = `<nav class="toc" aria-label="Contents of this paper">${R.outline.map((o, i) => `<button class="toc-i" data-act="toc" data-v="${i}" style="--d:${o.depth}"${o.dest == null ? " disabled" : ""}><span class="toc-t">${esc(o.title)}</span>${o.page ? `<span class="toc-p num">${o.page}</span>` : ""}</button>`).join("")}</nav>`;
   } else if (tab === "sessions"){
     const tot = p.sessions.reduce((a,s) => a+s.minutes, 0);
-    body = `<div class="card"><h3>This session</h3><div id="liveSess" style="font-size:13px"></div>
+    body = `${R.link ? "" : `<div class="card"><h3>This session</h3><div id="liveSess" style="font-size:13px"></div>
         <label class="lbl" for="sessNote">What did you get out of it?<textarea class="in" id="sessNote" placeholder="e.g. Understood why scores are scaled by √d_k"></textarea></label>
-        <div class="row"><button class="btn sm primary" data-act="log-session">Log session</button><span class="hint">A session is also logged automatically when you leave the paper.</span></div></div>
+        <div class="row"><button class="btn sm primary" data-act="log-session">Log session</button><span class="hint">A session is also logged automatically when you leave the paper.</span></div></div>`}
       <div class="row" style="justify-content:space-between"><b style="font-size:13px">History</b><span class="hint num">${p.sessions.length} sessions · ${fmtMin(tot)}</span></div>
       <div>${p.sessions.length ? p.sessions.map(s => sessionRow(p, s)).join("") : `<div class="empty">No sessions yet. Keep reading; time and pages are tracked while this tab is active.</div>`}</div>`;
   } else {
     body = `<div class="card"><h3>Status</h3><div class="status-grid">${STATUSES.map(([k,l]) => `<button class="${p.status===k?"on":""}" style="--c:${scol(k)}" data-act="status" data-v="${k}"><span class="dot" style="--c:${scol(k)}"></span>${l}</button>`).join("")}</div>
-        <dl class="kv"><dt>Progress</dt><dd>${p.maxPage||0} / ${p.pages||"?"} pages (${Math.round(progress(p)*100)}%)</dd><dt>Last read</dt><dd>${rel(p.lastOpened)}</dd><dt>Added</dt><dd>${fmtDate(p.addedAt)}</dd></dl></div>
-      <div class="card"><h3>Next reading target</h3><div class="two">
+        <dl class="kv">${R.link ? `<dt>Last opened</dt>` : `<dt>Progress</dt><dd>${p.maxPage||0} / ${p.pages||"?"} pages (${Math.round(progress(p)*100)}%)</dd><dt>Last read</dt>`}<dd>${rel(p.lastOpened)}</dd><dt>Added</dt><dd>${fmtDate(p.addedAt)}</dd></dl></div>
+      ${R.link ? "" : `<div class="card"><h3>Next reading target</h3><div class="two">
         <label class="lbl" for="tgPage">From page<input class="in num" id="tgPage" type="number" min="1" max="${p.pages||999}" value="${p.target?p.target.page:Math.min((p.lastPage||1)+1, p.pages||999)}"></label>
         <label class="lbl" for="tgDate">On<input class="in" id="tgDate" type="date" value="${p.target?p.target.date:""}"></label></div>
-        <div class="row"><button class="btn sm" data-act="target-save">Set target</button>${p.target?`<button class="btn sm ghost" data-act="target-clear">Clear</button>`:""}</div></div>
+        <div class="row"><button class="btn sm" data-act="target-save">Set target</button>${p.target?`<button class="btn sm ghost" data-act="target-clear">Clear</button>`:""}</div></div>`}
       <div class="card"><h3>Paper</h3>${sourceLink(p)}
         <label class="lbl" for="mTitle">Title<input class="in" id="mTitle" data-meta="title" value="${esc(p.title)}"></label>
         <label class="lbl" for="mAuth">Authors<input class="in" id="mAuth" data-meta="authors" value="${esc(p.authors)}"></label>
         <div class="two"><label class="lbl" for="mVenue">Venue<input class="in" id="mVenue" data-meta="venue" value="${esc(p.venue)}"></label><label class="lbl" for="mYear">Year<input class="in num" id="mYear" data-meta="year" value="${esc(p.year)}"></label></div>
+        ${R.link ? `<label class="lbl" for="mUrl">Link<input class="in" id="mUrl" data-meta="url" type="url" value="${esc(p.url || "")}" placeholder="https://…"></label>` : ""}
+        <label class="lbl" for="mAbs">Abstract<textarea class="in abs-ta" id="mAbs" data-meta="abstract" rows="${p.abstract ? 6 : 3}" placeholder="Paste the abstract here">${esc(p.abstract || "")}</textarea></label>
         <div class="lbl">Tags${tagEditor(p.tags, "paper")}</div></div>
-      <div class="card"><h3>Bookmarks</h3>${p.bookmarks.length ? `<div class="row">${p.bookmarks.slice().sort((a,b)=>a-b).map(n => `<button class="pref" data-act="goto" data-v="${n}">p. ${n}</button>`).join("")}</div>` : `<span class="hint">Use the bookmark button in the toolbar to mark a page.</span>`}</div>
+      ${R.link ? "" : `<div class="card"><h3>Bookmarks</h3>${p.bookmarks.length ? `<div class="row">${p.bookmarks.slice().sort((a,b)=>a-b).map(n => `<button class="pref" data-act="goto" data-v="${n}">p. ${n}</button>`).join("")}</div>` : `<span class="hint">Use the bookmark button in the toolbar to mark a page.</span>`}</div>`}
       <div class="card"><h3>File</h3>
-        <span style="font-size:13px;color:var(--muted)">${p.sample ? "This is an example entry without a real PDF." : p.hasFile ? "PDF stored in this browser." : "No PDF attached."}</span>
+        <span style="font-size:13px;color:var(--muted)">${p.sample ? "This is an example entry without a real PDF." : p.hasFile ? (DISK.on ? "PDF stored in your library folder." : "PDF stored in this browser.") : "Saved as a link, no PDF yet."}</span>
         <div class="row"><button class="btn sm" data-act="attach">${p.hasFile?"Replace PDF":"Attach PDF"}</button>
         <span id="rmWrap"><button class="btn sm ghost danger" data-act="remove">Remove from library</button></span></div></div>`;
   }
@@ -964,7 +1011,8 @@ const slug = s => String(s || "paper").toLowerCase().normalize("NFKD").replace(/
 function paperMarkdown(p){
   const meta = [p.authors, [p.venue, p.year].filter(Boolean).join(" ")].filter(Boolean).join(" · ");
   const hls = [...p.highlights].sort((a, b) => a.page - b.page).map(h => `- p. ${h.page} · ${HLC[h.color] || h.color}: "${h.text}"${h.comment ? `\n  ${h.comment}` : ""}`);
-  return `# ${p.title}\n\n${meta ? meta + "\n\n" : ""}Status: ${SLABEL[p.status] || p.status}${p.tags.length ? ` · Tags: ${p.tags.join(", ")}` : ""}\n\n## Notes\n\n${p.notes.trim() || "_No notes yet._"}\n\n## Highlights\n\n${hls.join("\n") || "_No highlights yet._"}\n`;
+  const src = [p.url && SAFE_URL.test(p.url) ? `Link: ${p.url}` : "", isLink(p) ? "No PDF yet" : ""].filter(Boolean).join(" · ");
+  return `# ${p.title}\n\n${meta ? meta + "\n\n" : ""}${src ? src + "\n\n" : ""}Status: ${SLABEL[p.status] || p.status}${p.tags.length ? ` · Tags: ${p.tags.join(", ")}` : ""}\n\n${p.abstract ? `## Abstract\n\n${p.abstract.trim()}\n\n` : ""}## Notes\n\n${p.notes.trim() || "_No notes yet._"}\n\n## Highlights\n\n${hls.join("\n") || "_No highlights yet._"}\n`;
 }
 const exportReadme = n => `PDFDesk library export\n\nlibrary.json  every paper with its status, tags, highlights, notes, sessions and bookmarks\npdfs/         the stored copy of each PDF, named by paper id\nnotes/        one Markdown file per paper, readable in any text editor\n\nTo restore: open PDFDesk, go to About (or the sidebar footer), choose Import library and pick this file.\nPapers: ${n}. Made with PDFDesk ${VERSION}.\n`;
 
@@ -1007,7 +1055,7 @@ function cleanPaper(p){
   return {id:String(p.id), sample:false, hasFile:!!p.hasFile, title:String(p.title || "Untitled"), authors:String(p.authors || ""), year:p.year ?? "", venue:String(p.venue || ""), pages:+p.pages || 0,
     status:st, tags:arr(p.tags).map(String), notes:String(p.notes || ""), highlights:arr(p.highlights).filter(h => h && h.id), sessions:arr(p.sessions).filter(s => s && s.id),
     bookmarks:arr(p.bookmarks).map(Number).filter(Number.isFinite), target:p.target && p.target.page ? p.target : null, summary:p.summary ? String(p.summary) : undefined,
-    arxiv:String(p.arxiv || ""), doi:String(p.doi || ""), url:SAFE_URL.test(String(p.url || "")) ? String(p.url) : "",
+    arxiv:String(p.arxiv || ""), doi:String(p.doi || ""), url:SAFE_URL.test(String(p.url || "")) ? String(p.url) : "", abstract:String(p.abstract || ""),
     addedAt:+p.addedAt || Date.now(), lastOpened:+p.lastOpened || 0, lastPage:+p.lastPage || 1, maxPage:+p.maxPage || 0};
 }
 
@@ -1064,7 +1112,11 @@ function showImportDialog(step){
   m.innerHTML = `<div class="mdl" role="dialog" aria-modal="true" aria-labelledby="mdl-h">${body}</div>`;
   m.hidden = false; m.querySelector(".btn.primary:not([disabled])")?.focus();
 }
-function closeModal(){ const m = $("#modal"); m.hidden = true; m.innerHTML = ""; IMP = null; }
+function closeModal(){
+  const m = $("#modal"); m.hidden = true; m.innerHTML = ""; IMP = null;
+  if (LINK && LINK.hasFile && !LINK.saved) idb.del(LINK.id);   // Add by link looked up an arXiv PDF, then was cancelled
+  LINK = null;
+}
 
 function mergeInto(cur, inc, stamp){
   const byId = (a, b) => { const seen = new Set(a.map(x => x.id)); return a.concat(b.filter(x => !seen.has(x.id))); };
@@ -1077,6 +1129,8 @@ function mergeInto(cur, inc, stamp){
   if (inc.lastOpened > cur.lastOpened){ cur.status = inc.status; cur.lastPage = inc.lastPage; cur.target = inc.target; cur.lastOpened = inc.lastOpened; }
   cur.maxPage = Math.max(cur.maxPage || 0, inc.maxPage || 0);
   if (!cur.pages && inc.pages) cur.pages = inc.pages;
+  if (!cur.abstract && inc.abstract) cur.abstract = inc.abstract;
+  if (!cur.url && inc.url) cur.url = inc.url;
 }
 
 async function applyImport(replace){
@@ -1301,6 +1355,117 @@ function sourceLink(p){
   return `<a class="src-link" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(label)} ↗</a>`;
 }
 
+/* ---------------- add by link (no PDF) ---------------- */
+// For papers found on Google Scholar or a publisher's site whose PDF you can't get: keep the link, details,
+// abstract, tags and first notes. Attaching the PDF later turns it into a normal paper. Nothing is fetched from
+// the link itself (D-011); BibTeX pasted from Scholar fills the details, and arXiv / DOI links can be looked up.
+let LINK = null; // the form's draft: {id, tags, hasFile, arxiv, doi}
+const linkIds = u => { const ax = /arxiv\.org\//i.test(u || "") || /10\.48550\/arxiv\./i.test(u || "") ? arxivBase(u) : ""; return {arxiv:ax, doi:ax ? "" : doiOf(u)}; };
+function showAddLink(){
+  LINK = {id:uid(), tags:[], hasFile:false, arxiv:"", doi:""};
+  const m = $("#modal");
+  m.innerHTML = `<div class="mdl wide" role="dialog" aria-modal="true" aria-labelledby="mdl-h" id="lkForm">
+    <h2 id="mdl-h">Add a paper by link</h2>
+    <p>For a paper whose PDF you can't get yet. Keep its link, abstract, tags and your first notes; attach the PDF later if you find it.</p>
+    <label class="lbl" for="lkUrl">Link to the paper<input class="in" id="lkUrl" type="url" autocomplete="off" spellcheck="false" placeholder="https://… (from Google Scholar or the publisher)"></label>
+    <div class="lk-found" id="lkFound" hidden></div>
+    <label class="lbl" for="lkBib">BibTeX, optional<textarea class="in lk-bib" id="lkBib" rows="2" spellcheck="false" placeholder="On Google Scholar, click Cite under the paper, then BibTeX, and paste it here. Title, authors, year and venue are filled in."></textarea></label>
+    <label class="lbl" for="lkTitle">Title<input class="in" id="lkTitle" autocomplete="off"></label>
+    <label class="lbl" for="lkAuth">Authors<input class="in" id="lkAuth" autocomplete="off"></label>
+    <div class="two"><label class="lbl" for="lkVenue">Venue<input class="in" id="lkVenue" autocomplete="off"></label><label class="lbl" for="lkYear">Year<input class="in num" id="lkYear" inputmode="numeric" autocomplete="off"></label></div>
+    <label class="lbl" for="lkAbs">Abstract<textarea class="in" id="lkAbs" rows="4" placeholder="Paste the abstract"></textarea></label>
+    <div class="lbl">Tags${tagEditor(LINK.tags, "draft")}</div>
+    <label class="lbl" for="lkNotes">Notes<textarea class="in" id="lkNotes" rows="3" placeholder="Why it's relevant, what to check. Markdown works."></textarea></label>
+    <p class="hint" id="lkMsg" role="status"></p>
+    <div class="mdl-foot"><button class="btn ghost" data-act="modal-close">Cancel</button><button class="btn primary" id="lkGo" data-act="lk-save">Add paper</button></div>
+  </div>`;
+  m.hidden = false; $("#lkUrl").focus();
+}
+const linkDirty = () => !!$("#lkForm") && (LINK.tags.length || [...document.querySelectorAll("#lkForm input.in:not(.tag-in), #lkForm textarea")].some(i => i.value.trim()));
+function linkUrlChanged(){
+  const u = $("#lkUrl").value.trim(), box = $("#lkFound"); if (!box) return;
+  const {arxiv, doi} = linkIds(u), have = (arxiv || doi) && existingFor(arxiv || doi);
+  if (have){ box.hidden = false; box.innerHTML = `<span>“${esc(have.title)}” is already in your library.</span><button class="btn sm" data-act="lk-open" data-v="${have.id}">Open it</button>`; return; }
+  if (!arxiv && !doi){ box.hidden = true; box.innerHTML = ""; return; }
+  const what = arxiv ? `arXiv ${esc(arxiv)}` : `DOI ${esc(doi)}`;
+  box.hidden = false;
+  box.innerHTML = DISK.on ? `<span>This is ${what}.</span><button class="btn sm" data-act="lk-fill">Fill in from ${arxiv ? "arXiv" : "Crossref"}</button>${arxiv ? `<span class="hint">The PDF comes with it.</span>` : ""}`
+    : `<span>This is ${what}. Start PDFDesk with the <span class="num">pdfdesk</span> command to fill the details in from ${arxiv ? "arXiv" : "Crossref"}.</span>`;
+}
+async function linkFill(){
+  const u = $("#lkUrl").value.trim(), {arxiv, doi} = linkIds(u), msg = $("#lkMsg"), b = document.querySelector('[data-act="lk-fill"]');
+  if (!arxiv && !doi) return;
+  const lid = LINK.id;
+  if (b){ b.disabled = true; b.textContent = "Looking it up…"; }
+  let data = null, r = null;
+  try { r = await fetch("api/lookup", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({query:arxiv || doi, id:lid})}); data = await r.json().catch(() => null); } catch(e){}
+  if (!LINK || LINK.id !== lid){ if (data && data.hasFile) idb.del(lid); return; }   // the form was closed while looking up
+  if (b){ b.disabled = false; b.textContent = `Fill in from ${arxiv ? "arXiv" : "Crossref"}`; }
+  if (!r || !r.ok || !data || !data.paper){ msg.textContent = (data && data.error) || "PDFDesk couldn't look that up. Is pdfdesk still running?"; return; }
+  const m = data.paper;
+  $("#lkTitle").value = m.title || $("#lkTitle").value; $("#lkAuth").value = m.authors || $("#lkAuth").value;
+  $("#lkVenue").value = m.venue || $("#lkVenue").value; $("#lkYear").value = m.year || $("#lkYear").value;
+  Object.assign(LINK, {arxiv:m.arxiv || "", doi:m.doi || "", hasFile:!!data.hasFile});
+  msg.textContent = data.hasFile ? "Filled in, and the PDF was downloaded: this will be added as a normal paper you can read." : "Filled in. Add the abstract and your notes, then Add paper.";
+}
+
+// BibTeX as Google Scholar gives it: @article{key, title={...}, author={A and B and others}, journal={...}, year={2017}}
+function bibField(src, name){
+  const m = new RegExp(`(?:^|[,\\s])${name}\\s*=\\s*`, "i").exec(src); if (!m) return "";
+  let i = m.index + m[0].length, out = "";
+  if (src[i] === "{"){ let d = 0; for (; i < src.length; i++){ const c = src[i]; if (c === "{"){ if (d++) out += c; } else if (c === "}"){ if (--d === 0) break; out += c; } else out += c; } }
+  else if (src[i] === '"'){ i++; while (i < src.length && src[i] !== '"') out += src[i++]; }
+  else out = (/^[^,}\s]+/.exec(src.slice(i)) || [""])[0];
+  return out;
+}
+function bibText(s){
+  const marks = {'"':"̈", "'":"́", "`":"̀", "^":"̂", "~":"̃", "=":"̄", ".":"̇", "c":"̧", "v":"̌", "u":"̆", "H":"̋"};
+  return String(s)
+    .replace(/\\([`'"^~=.]|[cvuH](?=[\s{]))\s*\{?\\?([a-zA-Z])\}?/g, (_, a, ch) => ch + (marks[a] || ""))
+    .replace(/\\(ss|o|O|l|L|ae|AE|i)\b\s*/g, (_, w) => ({ss:"ß", o:"ø", O:"Ø", l:"ł", L:"Ł", ae:"æ", AE:"Æ", i:"ı"}[w]))
+    .replace(/\\&/g, "&").replace(/\\[a-zA-Z]+\s*/g, "").replace(/[{}]/g, "").replace(/~/g, " ").replace(/\s+/g, " ").trim().normalize("NFC");
+}
+function bibAuthors(s){
+  const names = bibText(s).split(/\s+and\s+/i).map(x => x.trim()).filter(Boolean);
+  const out = [], more = names.some(n => /^others$/i.test(n));
+  names.filter(n => !/^others$/i.test(n)).forEach(n => out.push(n.includes(",") ? n.split(",")[0].trim() : n.split(/\s+/).pop()));
+  return out.join(", ") + (more ? ", et al." : "");
+}
+function parseBibtex(src){
+  if (!/@\w+\s*\{/.test(src || "")) return null;
+  const f = n => bibText(bibField(src, n));
+  const venue = f("journal") || f("booktitle") || f("publisher") || f("school") || f("institution");
+  const ax = /arxiv/i.test(venue + " " + f("eprint") + " " + f("archiveprefix")) ? arxivBase(f("eprint") || venue) : "";
+  return {title:f("title"), authors:bibField(src, "author") ? bibAuthors(bibField(src, "author")) : "", year:(/\d{4}/.exec(f("year")) || [""])[0],
+    venue:ax && /^arxiv preprint/i.test(venue) ? "arXiv" : venue, doi:doiOf(f("doi")), arxiv:ax, url:f("url")};
+}
+function linkBibChanged(){
+  const b = parseBibtex($("#lkBib").value), msg = $("#lkMsg");
+  if (!b){ if ($("#lkBib").value.trim()) msg.textContent = "That doesn't look like BibTeX. It starts with @article{ or @inproceedings{."; return; }
+  [["lkTitle", b.title], ["lkAuth", b.authors], ["lkVenue", b.venue], ["lkYear", b.year]].forEach(([id, v]) => { if (v) $("#" + id).value = v; });
+  if (b.url && SAFE_URL.test(b.url) && !$("#lkUrl").value.trim()){ $("#lkUrl").value = b.url; linkUrlChanged(); }
+  if (b.doi) LINK.doi = LINK.doi || b.doi; if (b.arxiv) LINK.arxiv = LINK.arxiv || b.arxiv;
+  msg.textContent = b.title ? "Details filled in from the BibTeX. Check them, then Add paper." : "No title in that BibTeX. Type it in.";
+}
+function linkSave(){
+  const v = id => $("#" + id).value.trim(), msg = $("#lkMsg");
+  const url = v("lkUrl"), title = v("lkTitle");
+  if (!/^https?:\/\/[^\s/]+\.[^\s]+$/i.test(url)){ msg.textContent = "Paste the paper's link, starting with https://"; $("#lkUrl").focus(); return; }
+  if (!title){ msg.textContent = "Give the paper a title, or paste its BibTeX."; $("#lkTitle").focus(); return; }
+  const ids = linkIds(url), arxiv = LINK.arxiv || ids.arxiv, doi = (LINK.doi || ids.doi || "").toLowerCase();
+  const dup = S.papers.find(p => !p.sample && ((arxiv && (p.arxiv || "").toLowerCase() === arxiv) || (doi && (p.doi || "").toLowerCase() === doi) || (p.url && p.url === url)));
+  if (dup){ closeModal(); toast(`“${dup.title}” is already in your library`); openReader(dup.id); return; }
+  const y = v("lkYear"), tagIn = $("#tagIn-draft");
+  if (tagIn && normTag(tagIn.value)) addTag("draft", tagIn.value);   // a tag typed but not yet added
+  const p = {id:LINK.id, sample:false, hasFile:LINK.hasFile, title, authors:v("lkAuth"), year:/^\d{4}$/.test(y) ? +y : y, venue:v("lkVenue"), pages:0,
+    arxiv, doi, url, abstract:$("#lkAbs").value.trim(),
+    status:"inbox", tags:LINK.tags.slice(), notes:$("#lkNotes").value.trim(), highlights:[], sessions:[], bookmarks:[], target:null, addedAt:Date.now(), lastOpened:0, lastPage:1, maxPage:0};
+  S.papers.unshift(p); LINK.saved = true; closeModal(); save();
+  if (!(S.ui.view === "reader" && R)){ S.ui.view = "library"; S.ui.filter = p.hasFile ? "inbox" : "nopdf"; }
+  renderAll();
+  toast(p.hasFile ? `Added “${title}” to your Inbox, with its PDF` : `Saved “${title}” as a link. Attach the PDF whenever you get it.`);
+}
+
 /* ---------------- search inside the library ---------------- */
 // Every word must appear (any order); case and accents are ignored. Searches highlight text and comments,
 // each line of the notes, and session takeaways, within the papers the current filter shows.
@@ -1459,7 +1624,7 @@ document.addEventListener("mousemove", e => {
 const normTag = s => String(s || "").trim().toLowerCase().replace(/,/g, "").replace(/\s+/g, "-").replace(/^-+|-+$/g, "");
 let TS = null; // open suggestion list: {inp, opts:[tag], i}
 function tagCounts(){ const c = {}; S.papers.forEach(p => p.tags.forEach(t => c[t] = (c[t] || 0) + 1)); return c; }
-function tagList(kind){ return kind === "paper" && R ? getP(R.id).tags : null; }
+function tagList(kind){ return kind === "draft" ? (LINK ? LINK.tags : null) : kind === "paper" && R ? getP(R.id).tags : null; }
 function tagEditor(tags, kind){
   return `<div class="tags-ed" data-tags-of="${kind}">${tags.map(t => `<span class="tag">${esc(t)}<button type="button" data-act="tag-del" data-k="${kind}" data-v="${esc(t)}" aria-label="Remove tag ${esc(t)}">×</button></span>`).join("")}
     <span class="tag-pick"><input class="in tag-in" id="tagIn-${kind}" data-tags="${kind}" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="tagSug-${kind}" autocomplete="off" spellcheck="false" placeholder="${tags.length ? "add tag" : "add a tag"}" aria-label="Add a tag"><div class="tag-sug" id="tagSug-${kind}" role="listbox" aria-label="Tags in your library" hidden></div></span></div>`;
@@ -1557,6 +1722,10 @@ document.addEventListener("click", async e => {
     case "open": openReader(v); break;
     case "add-id": showAddById(); break;
     case "add-id-go": addById(); break;
+    case "add-link": showAddLink(); break;
+    case "lk-save": linkSave(); break;
+    case "lk-fill": linkFill(); break;
+    case "lk-open": closeModal(); openReader(v); break;
     case "open-at": { S.ui.tab = t.dataset.tab; if (S.ui.tab === "notes") S.ui.nmode = "preview"; const pg = +t.dataset.p, q = t.dataset.q; await openReader(v, pg ? {page:pg} : null); if (S.ui.tab === "notes") showNoteMatch(q); break; }
     case "open-hl": { const pp = getP(v), h = pp && pp.highlights.find(x => x.id === t.dataset.h); S.ui.tab = "highlights"; openReader(v, h ? {page:h.page, hl:h.id} : null); break; }
     case "add": $("#fileIn").click(); break;
@@ -1591,16 +1760,18 @@ document.addEventListener("click", async e => {
 document.addEventListener("input", e => {
   const t = e.target;
   if (t.id === "q"){ S.ui.q = t.value; if (S.ui.view !== "library"){ closeReader(); S.ui.view = "library"; S.ui.filter = "all"; renderMain(); renderSide(); const q = $("#q"); q.focus(); q.setSelectionRange(q.value.length, q.value.length); } else renderMain(); saveSoon(); return; }
+  if (t.id === "lkUrl"){ linkUrlChanged(); return; }
+  if (t.id === "lkBib"){ linkBibChanged(); return; }
   if (t.classList.contains("tag-in")){ if (t.value.includes(",")){ addTag(t.dataset.tags, t.value); } else tagSuggest(t); return; } // comma pasted or typed on mobile keyboards
   if (!R) return; const p = getP(R.id);
   if (t.id === "noteTa"){ p.notes = t.value; saveSoon(); }
   else if (t.dataset.cm){ const h = p.highlights.find(x => x.id === t.dataset.cm); if (h){ h.comment = t.value; saveSoon(); } }
-  else if (t.dataset.meta){ p[t.dataset.meta] = t.value; saveSoon(); if (t.dataset.meta === "title") document.querySelector(".r-title").textContent = t.value; }
+  else if (t.dataset.meta){ p[t.dataset.meta] = t.value; saveSoon(); if (t.dataset.meta === "title") document.querySelector(".r-title").textContent = t.value; if (R.link) $("#linkPage").innerHTML = linkPageHTML(p); }
 });
 document.addEventListener("keydown", e => {
   const t = e.target;
   if (t.classList && t.classList.contains("tag-in") && tagKey(e, t)) return;
-  if (e.key === "Escape" && !$("#modal").hidden){ closeModal(); return; }
+  if (e.key === "Escape" && !$("#modal").hidden){ if (linkDirty()){ $("#lkMsg").textContent = "Press Cancel to discard what you've typed."; return; } closeModal(); return; }
   if (t.id === "idIn" && e.key === "Enter"){ e.preventDefault(); addById(); return; }
   if (e.altKey && e.key === "ArrowLeft" && R && R.hist.length){ e.preventDefault(); goBack(); return; }  // instead of leaving the page
   if (R && R.editSess && t.closest && t.closest(".sess-form")){
@@ -1626,7 +1797,7 @@ let rzT; window.addEventListener("resize", () => { clearTimeout(rzT); rzT = setT
 
 $("#fileIn").addEventListener("change", e => { importFiles(e.target.files); e.target.value = ""; });
 $("#impIn").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; if (f) startImport(f); });
-$("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+$("#modal").addEventListener("click", e => { if (e.target.id === "modal" && !linkDirty()) closeModal(); });
 $("#attachIn").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; if (f) attachFile(f); });
 let dragN = 0;
 window.addEventListener("dragenter", e => { if ([...(e.dataTransfer?.types||[])].includes("Files")){ dragN++; $("#drop").hidden = false; } });
