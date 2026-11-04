@@ -22,6 +22,12 @@ pip install pdfdesk && pdfdesk
 
 ---
 
+## New in 1.1
+
+- 🔗 **Add a paper by link, without the PDF:** found it on Google Scholar but can't get the PDF? Keep the link, abstract, tags and notes now (paste Scholar's BibTeX to fill in the details) and attach the PDF later.
+- 🏷️ **Tags suggest themselves:** your existing tags are listed as you type, most used first.
+- 📝 **Abstracts** for every paper, included in search.
+
 ## New in 1.0
 
 - 🔗 **Links in your PDFs work:** citations, figure and section references jump to the exact spot, and **Back** (`Alt+←`) returns you.
@@ -195,7 +201,7 @@ Upgrade any time with `pip install -U pdfdesk`.
 
 ## What's coming
 
-PDFDesk is at **1.0**. Next up:
+PDFDesk is at **1.1**. Next up:
 
 - **Recolour instead of duplicate:** highlighting text that's already highlighted will offer to change its colour.
 - **Reference preview:** hover over a citation to read the reference without jumping.
