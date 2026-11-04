@@ -773,7 +773,7 @@ function renderPanel(){
         <label class="lbl" for="mTitle">Title<input class="in" id="mTitle" data-meta="title" value="${esc(p.title)}"></label>
         <label class="lbl" for="mAuth">Authors<input class="in" id="mAuth" data-meta="authors" value="${esc(p.authors)}"></label>
         <div class="two"><label class="lbl" for="mVenue">Venue<input class="in" id="mVenue" data-meta="venue" value="${esc(p.venue)}"></label><label class="lbl" for="mYear">Year<input class="in num" id="mYear" data-meta="year" value="${esc(p.year)}"></label></div>
-        <div class="lbl">Tags<div class="tags-ed">${p.tags.map(t => `<span class="tag">${esc(t)}<button data-act="tag-del" data-v="${esc(t)}" aria-label="Remove tag ${esc(t)}">×</button></span>`).join("")}<input class="in" id="tagIn" placeholder="add tag, Enter" style="width:130px;height:24px"></div></div></div>
+        <div class="lbl">Tags${tagEditor(p.tags, "paper")}</div></div>
       <div class="card"><h3>Bookmarks</h3>${p.bookmarks.length ? `<div class="row">${p.bookmarks.slice().sort((a,b)=>a-b).map(n => `<button class="pref" data-act="goto" data-v="${n}">p. ${n}</button>`).join("")}</div>` : `<span class="hint">Use the bookmark button in the toolbar to mark a page.</span>`}</div>
       <div class="card"><h3>File</h3>
         <span style="font-size:13px;color:var(--muted)">${p.sample ? "This is an example entry without a real PDF." : p.hasFile ? "PDF stored in this browser." : "No PDF attached."}</span>
@@ -1453,6 +1453,77 @@ document.addEventListener("mousemove", e => {
   });
 }, {passive:true});
 
+/* ---------------- tag picker ---------------- */
+// The tag box suggests tags already in the library: most used first when empty, matches (prefix first) as you type.
+// Enter or comma adds the selected suggestion, or the typed text as a new tag; Backspace in an empty box removes the last tag.
+const normTag = s => String(s || "").trim().toLowerCase().replace(/,/g, "").replace(/\s+/g, "-").replace(/^-+|-+$/g, "");
+let TS = null; // open suggestion list: {inp, opts:[tag], i}
+function tagCounts(){ const c = {}; S.papers.forEach(p => p.tags.forEach(t => c[t] = (c[t] || 0) + 1)); return c; }
+function tagList(kind){ return kind === "paper" && R ? getP(R.id).tags : null; }
+function tagEditor(tags, kind){
+  return `<div class="tags-ed" data-tags-of="${kind}">${tags.map(t => `<span class="tag">${esc(t)}<button type="button" data-act="tag-del" data-k="${kind}" data-v="${esc(t)}" aria-label="Remove tag ${esc(t)}">×</button></span>`).join("")}
+    <span class="tag-pick"><input class="in tag-in" id="tagIn-${kind}" data-tags="${kind}" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="tagSug-${kind}" autocomplete="off" spellcheck="false" placeholder="${tags.length ? "add tag" : "add a tag"}" aria-label="Add a tag"><div class="tag-sug" id="tagSug-${kind}" role="listbox" aria-label="Tags in your library" hidden></div></span></div>`;
+}
+function tagSuggest(inp){
+  const kind = inp.dataset.tags, have = tagList(kind) || [], c = tagCounts(), box = $(`#tagSug-${kind}`); if (!box) return;
+  const q = normTag(inp.value), fq = fold(q);
+  const items = Object.keys(c).filter(t => !have.includes(t) && (!fq || fold(t).includes(fq)))
+    .sort((a, b) => (fq ? (fold(b) === fq) - (fold(a) === fq) || fold(b).startsWith(fq) - fold(a).startsWith(fq) : 0) || c[b] - c[a] || a.localeCompare(b)).slice(0, 8);
+  const isNew = q && !have.includes(q) && !c[q];
+  const opts = isNew ? [...items, q] : items;
+  if (!opts.length){ closeTagSug(); return; }
+  const i = fq && items.length && fold(items[0]).startsWith(fq) ? 0 : isNew ? opts.length - 1 : fq ? 0 : -1;
+  TS = {inp, opts, i};
+  box.innerHTML = opts.map((t, k) => k === items.length
+    ? `<button type="button" role="option" id="ts-${kind}-${k}" class="ts-i ts-new" data-act="tag-pick" data-k="${kind}" data-v="${esc(t)}">New tag <b>${esc(t)}</b></button>`
+    : `<button type="button" role="option" id="ts-${kind}-${k}" class="ts-i" data-act="tag-pick" data-k="${kind}" data-v="${esc(t)}"><span class="num" aria-hidden="true">#</span>${esc(t)}<span class="ct num" title="${c[t]} ${c[t] === 1 ? "paper" : "papers"}">${c[t]}</span></button>`).join("");
+  box.hidden = false; inp.setAttribute("aria-expanded", "true");
+  markTagSug();
+}
+function markTagSug(){
+  if (!TS) return; const box = $(`#tagSug-${TS.inp.dataset.tags}`); if (!box) return;
+  box.querySelectorAll(".ts-i").forEach((b, k) => { b.classList.toggle("on", k === TS.i); b.setAttribute("aria-selected", String(k === TS.i)); });
+  const on = box.querySelector(".ts-i.on");
+  if (on){ TS.inp.setAttribute("aria-activedescendant", on.id); on.scrollIntoView({block:"nearest"}); } else TS.inp.removeAttribute("aria-activedescendant");
+}
+function closeTagSug(){
+  document.querySelectorAll(".tag-sug").forEach(b => { b.hidden = true; b.innerHTML = ""; });
+  document.querySelectorAll(".tag-in").forEach(i => { i.setAttribute("aria-expanded", "false"); i.removeAttribute("aria-activedescendant"); });
+  TS = null;
+}
+function renderTags(kind){ // redraw just the tag box, keep typing in it
+  if (kind === "paper"){ save(); renderSide(); }
+  const ed = document.querySelector(`[data-tags-of="${kind}"]`), list = tagList(kind); if (!ed || !list) return;
+  ed.outerHTML = tagEditor(list, kind);
+  const inp = $(`#tagIn-${kind}`); inp.focus(); tagSuggest(inp);
+}
+function addTag(kind, v){
+  const list = tagList(kind); if (!list) return;
+  String(v || "").split(",").map(normTag).filter(Boolean).forEach(x => { if (!list.includes(x)) list.push(x); });
+  renderTags(kind);
+}
+function removeTag(kind, v){
+  const list = tagList(kind); if (!list) return; const i = list.indexOf(v); if (i >= 0) list.splice(i, 1);
+  renderTags(kind);
+}
+function tagKey(e, inp){ // keydown in a tag box; true when handled
+  const kind = inp.dataset.tags, open = TS && TS.inp === inp;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp"){
+    e.preventDefault(); if (!open){ tagSuggest(inp); return true; }
+    const n = TS.opts.length; TS.i = e.key === "ArrowDown" ? (TS.i + 1) % n : (TS.i <= 0 ? n - 1 : TS.i - 1); markTagSug(); return true;
+  }
+  if (e.key === "Enter" || e.key === ","){
+    e.preventDefault();
+    const v = open && TS.i >= 0 ? TS.opts[TS.i] : inp.value; if (normTag(v)) addTag(kind, v); return true;
+  }
+  if (e.key === "Escape" && open){ e.preventDefault(); e.stopPropagation(); closeTagSug(); return true; }
+  if (e.key === "Backspace" && !inp.value){ const list = tagList(kind); if (list && list.length){ e.preventDefault(); removeTag(kind, list[list.length - 1]); } return true; }
+  return false;
+}
+document.addEventListener("focusin", e => { if (e.target.classList && e.target.classList.contains("tag-in")) tagSuggest(e.target); });
+document.addEventListener("focusout", e => { if (e.target.classList && e.target.classList.contains("tag-in") && TS && TS.inp === e.target) closeTagSug(); });
+document.addEventListener("mousedown", e => { if (e.target.closest(".ts-i")) e.preventDefault(); }); // keep focus in the box while picking
+
 /* ---------------- events ---------------- */
 document.addEventListener("click", async e => {
   const t = e.target.closest("[data-act]"); if (!t || !S) return;
@@ -1509,7 +1580,8 @@ document.addEventListener("click", async e => {
     case "log-session": { const note = ($("#sessNote")?.value||"").trim(); const rec = endSession(note); R.session = {start:Date.now(), active:0, from:R.current, max:R.current}; renderPanel(); toast(rec ? `Logged ${rec.minutes} min, pp. ${rec.from}–${rec.to}` : "Nothing to log yet. Read a little first."); break; }
     case "target-save": { const pg = +$("#tgPage").value || 1, dt = $("#tgDate").value; if (!dt) return toast("Pick a date for the target."); p.target = {page:pg, date:dt}; if (p.status==="inbox") p.status = "planned"; save(); renderPanel(); toast(`Target set: p. ${pg} on ${fmtDate(new Date(dt+"T00:00"))}`); break; }
     case "target-clear": p.target = null; save(); renderPanel(); break;
-    case "tag-del": p.tags = p.tags.filter(x => x !== v); save(); renderSide(); renderPanel(); break;
+    case "tag-del": removeTag(t.dataset.k, v); break;
+    case "tag-pick": addTag(t.dataset.k, v); break;
     case "remove": $("#rmWrap").innerHTML = `<span style="font-size:12px">Remove paper, notes and history?</span> <button class="btn sm danger" data-act="remove-yes">Remove</button> <button class="btn sm ghost" data-act="tab" data-v="details">Cancel</button>`; break;
     case "remove-yes": { const id = R.id; R.session = null; closeReader(); S.papers = S.papers.filter(x => x.id !== id); idb.del(id); S.ui.view = "library"; save(); renderAll(); toast("Removed from library"); break; }
     case "clear-examples": closeReader(); S.papers = S.papers.filter(x => !x.sample); S.ui.view = S.papers.length ? "library" : "home"; S.ui.filter = "all"; save(); renderAll(); toast("Examples removed"); break;
@@ -1519,6 +1591,7 @@ document.addEventListener("click", async e => {
 document.addEventListener("input", e => {
   const t = e.target;
   if (t.id === "q"){ S.ui.q = t.value; if (S.ui.view !== "library"){ closeReader(); S.ui.view = "library"; S.ui.filter = "all"; renderMain(); renderSide(); const q = $("#q"); q.focus(); q.setSelectionRange(q.value.length, q.value.length); } else renderMain(); saveSoon(); return; }
+  if (t.classList.contains("tag-in")){ if (t.value.includes(",")){ addTag(t.dataset.tags, t.value); } else tagSuggest(t); return; } // comma pasted or typed on mobile keyboards
   if (!R) return; const p = getP(R.id);
   if (t.id === "noteTa"){ p.notes = t.value; saveSoon(); }
   else if (t.dataset.cm){ const h = p.highlights.find(x => x.id === t.dataset.cm); if (h){ h.comment = t.value; saveSoon(); } }
@@ -1526,6 +1599,7 @@ document.addEventListener("input", e => {
 });
 document.addEventListener("keydown", e => {
   const t = e.target;
+  if (t.classList && t.classList.contains("tag-in") && tagKey(e, t)) return;
   if (e.key === "Escape" && !$("#modal").hidden){ closeModal(); return; }
   if (t.id === "idIn" && e.key === "Enter"){ e.preventDefault(); addById(); return; }
   if (e.altKey && e.key === "ArrowLeft" && R && R.hist.length){ e.preventDefault(); goBack(); return; }  // instead of leaving the page
@@ -1534,7 +1608,6 @@ document.addEventListener("keydown", e => {
     if (e.key === "Enter" && t.tagName === "INPUT"){ e.preventDefault(); saveSession(getP(R.id), R.editSess); return; }
   }
   if (t.id === "pgIn" && e.key === "Enter"){ goPage(+t.value); t.blur(); return; }
-  if (t.id === "tagIn" && e.key === "Enter" && R){ const v = t.value.trim().toLowerCase().replace(/\s+/g,"-"); const p = getP(R.id); if (v && !p.tags.includes(v)){ p.tags.push(v); save(); renderSide(); renderPanel(); $("#tagIn")?.focus(); } return; }
   if (!/INPUT|TEXTAREA|SELECT/.test(t.tagName) && !t.isContentEditable && !e.ctrlKey && !e.metaKey && !e.altKey){
     if (e.key === "["){ toggleBar("side"); e.preventDefault(); return; }
     if (e.key === "]"){ toggleBar("panel"); e.preventDefault(); return; }
