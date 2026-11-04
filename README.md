@@ -113,7 +113,7 @@ Every paper has a place in the reading lifecycle:
 
 **Inbox → Planned → Reading → Paused → Completed → Revisit**
 
-- Opening a paper moves it to *Reading*. When you reach the last page, PDFDesk asks whether it's *Completed* or worth a *Revisit*.
+- Opening a paper moves it to *Reading*. When you reach the last page, PDFDesk asks whether it's *Completed* or worth a *Revisit*. Papers saved as a link stay where you put them until you attach the PDF.
 - **Import** by button or drag and drop. Title, authors and page count come from the PDF itself.
 - **Search everything** from the sidebar: titles, authors, tags and abstracts, and inside your highlights, comments, notes and session takeaways. Each result opens the right page.
 - **Add by arXiv ID or DOI:** paste `1706.03762` or a DOI, and the title, authors, year and venue are filled in. arXiv papers come with their PDF.
@@ -132,6 +132,7 @@ PDFDesk logs each sitting with a paper on its own:
 - **Resume where you left off**: every paper reopens at your last page.
 - **Bookmarks** for pages you'll come back to.
 - **Fix a session** logged by mistake: edit its pages, minutes or takeaway, or delete it.
+- Papers saved as a link, without the PDF, don't record sessions: there's nothing to read yet. Sessions start once you attach the PDF.
 
 ## Your reading, at a glance
 
@@ -146,7 +147,7 @@ The overview turns your sessions into a picture of your reading:
 
 ## Back up and move your library
 
-- **Export library** saves everything in one `.zip`: your PDFs, highlights, comments, notes, sessions and bookmarks, plus a readable Markdown file of notes and highlights for every paper.
+- **Export library** saves everything in one `.zip`: your PDFs, highlights, comments, notes, sessions and bookmarks, plus a readable Markdown file for every paper with its link, abstract, notes and highlights.
 - **Export without PDFs** makes a small backup file for frequent saves.
 - **Import library** shows what's in the file before changing anything. *Add to my library* merges and never deletes or overwrites what you wrote; *Replace my library* asks first and offers to export your current library.
 - Drop an export file on the window to import it. Use it to move to another browser or computer.
@@ -169,6 +170,7 @@ Dark mode follows your system setting. Typography is set for long reading sessio
 | `]` | Show or hide notes and highlights |
 | `Enter` in the page box | Jump to page |
 | `Esc` | Close the highlight menu |
+| `Enter` or `,` in a tag box | Add the suggested tag (or a new one); `↑` `↓` choose, `Backspace` removes the last tag |
 
 ---
 
@@ -186,7 +188,7 @@ pip install pdfdesk
 pdfdesk
 ```
 
-PDFDesk opens in your browser at **http://localhost:5173**. A few example papers are loaded so you can explore. Remove them from the sidebar when you're ready, then drop in your own PDFs.
+PDFDesk opens in your browser at **http://localhost:5173**. A few example papers are loaded so you can explore. Remove them from the sidebar when you're ready, then drop in your own PDFs, add papers by arXiv ID or DOI, or save one by its link when you can't get the PDF.
 
 ```bash
 pdfdesk --no-browser            # start without opening a browser window

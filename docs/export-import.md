@@ -43,7 +43,7 @@ pdfdesk-export-2026-11-03.zip
 ├─ pdfs/
 │   └─ <paper-id>.pdf      the stored copy of each PDF
 ├─ notes/
-│   └─ <title-slug>.md     one readable Markdown file per paper: notes + highlights with pages
+│   └─ <title-slug>.md     one readable Markdown file per paper: link, abstract, notes + highlights with pages
 └─ README.txt              what this file is and how to import it
 ```
 

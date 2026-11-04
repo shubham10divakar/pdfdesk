@@ -118,7 +118,7 @@ Alternative without Node: `cd prototype && python -m http.server 5173`.
 | Library | Import PDFs (button or drag-drop), title/author from PDF metadata, add by arXiv ID or DOI, add by link without the PDF (BibTeX fill-in), tags with suggestions, status filters, No PDF yet list |
 | Papers without a PDF | `isLink(p)` (`!hasFile && !sample`): the reader shows a paper page (details, abstract, Open paper, Attach PDF) instead of pages; Notes and Details only; no session, status untouched |
 | Search | Titles, authors, tags, abstracts, plus highlights, comments, note lines and session takeaways; results open the right page |
-| Lifecycle | Inbox → Planned → Reading → Paused → Completed → Revisit. Opening a paper moves it to Reading. Reaching the last page prompts for Completed or Revisit |
+| Lifecycle | Inbox → Planned → Reading → Paused → Completed → Revisit. Opening a paper moves it to Reading (not a paper without a PDF). Reaching the last page prompts for Completed or Revisit |
 | Reader | PDF.js rendering with a text layer, lazy page rendering, zoom, page jump, bookmarks, resume at last page, links in the PDF with Back, Contents tab, collapsible sidebar and panel (`[` `]`), `j`/`k` or arrow keys to change page, `b` to bookmark |
 | Highlights | Select text → 4 colours with meanings (yellow key idea, green method/result, blue definition, pink question). Optional comment per highlight. Click a card to see it on the page, or a highlight on the page to open its card. Re-found by text when the PDF is replaced |
 | Notes | Per-paper Markdown notes. `p. 12` becomes a link to that page. "Insert highlights" pulls highlights into notes with page refs. "Cite p. N" inserts the current page |

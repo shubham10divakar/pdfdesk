@@ -414,6 +414,7 @@ const FEATURES = [
   ["Library and lifecycle", [
     "Every paper moves through Inbox, Planned, Reading, Paused, Completed and Revisit",
     "Opening a paper moves it to Reading; reaching the last page asks for Completed or Revisit",
+    "Papers saved as a link wait in a No PDF yet list; Open paper takes you to the page, Attach PDF makes it readable",
     "Import with the button or drag and drop; title, authors and page count come from the PDF",
     "Search titles, authors, tags and abstracts, and inside highlights, notes and session takeaways; each result opens the right page",
     "Add a paper by arXiv ID or DOI: details filled in, arXiv PDFs downloaded",
@@ -441,7 +442,7 @@ const FEATURES = [
     "Write p. 12 and it becomes a link to page 12; next to a quoted highlight it jumps to that highlight",
     "Cite the page you're on, insert highlights, copy everything as Markdown"]],
   ["Reading sessions", [
-    "Each sitting is logged with the pages you covered",
+    "Each sitting is logged with the pages you covered (papers without a PDF record none)",
     "Edit or delete a session logged by mistake",
     "Only active time counts: the clock pauses when the tab is hidden or you're idle for 3 minutes",
     "Add a one-line takeaway at the end of a session"]],
@@ -451,7 +452,7 @@ const FEATURES = [
     "A 17-week reading calendar with your streak and total hours",
     "Up next by target date, a daily revision queue of past highlights, and the full reading log"]],
   ["Export and import", [
-    "Export the whole library as one .zip: PDFs, highlights, notes, sessions, plus readable Markdown notes",
+    "Export the whole library as one .zip: PDFs, highlights, notes, sessions, plus a readable Markdown file per paper with its link and abstract",
     "A small backup without PDFs for frequent saves",
     "Import merges into your library and never deletes what you wrote, or replaces it after asking",
     "Drop an export file on the window to import it"]],
