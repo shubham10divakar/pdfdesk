@@ -62,7 +62,7 @@ chrome --headless=new --remote-debugging-port=9337 --user-data-dir=<temp dir> ab
 node scripts/e2e/disk-storage.mjs 9337 <abs path>/sample-paper.pdf <abs empty work dir>   # from the repo root
 ```
 
-More end-to-end scripts (each prints PASS/FAIL lines; all except add-by-id run against the static server, `npm run dev:static -- 5193`):
+More end-to-end scripts (each prints PASS/FAIL lines; all except add-by-id and link-papers run against the static server, `npm run dev:static -- 5193`):
 
 | Script | Checks | Arguments |
 |---|---|---|
@@ -71,6 +71,8 @@ More end-to-end scripts (each prints PASS/FAIL lines; all except add-by-id run a
 | `search.mjs` | Highlights, note lines, session takeaways; order/case/accents; where each result leads; filter scope (13) | `<port> <appUrl>` |
 | `reanchor.mjs` | Same file back in place; moved, repeated, reworded and removed text in a new version (14) | `<port> <appUrl> <outDir>` (prints `fixtures/reanchor-v1/-v2.html`) |
 | `add-by-id.mjs` | arXiv with PDF, duplicates, DOI, bad and unknown ids, static-server message (12). **Needs internet.** | `<port> <abs empty work dir>` (starts its own servers) |
+| `tags.mjs` | Tag suggestions: most used first, narrowing, keys, mouse, new tags, comma lists, Backspace, Escape, saved (21) | `<port> <appUrl> [outDir]` (fresh Chrome profile: uses the example papers) |
+| `link-papers.mjs` | Add by link: BibTeX fill-in, tags, unsaved-form guard, paper page, no sessions, abstract search, attach PDF later, arXiv fill-in and Cancel, duplicates, static mode (36). **Needs internet.** | `<port> <abs>/sample-paper.pdf <abs empty work dir> [outDir]` (starts its own servers; fresh Chrome profile) |
 
 Each script resets the site's storage first, by leaving the page and clearing it over the DevTools protocol (the app saves on unload, so clearing while the page is open doesn't stick).
 
@@ -113,8 +115,9 @@ Alternative without Node: `cd prototype && python -m http.server 5173`.
 
 | Area | Features |
 |---|---|
-| Library | Import PDFs (button or drag-drop), title/author from PDF metadata, add by arXiv ID or DOI, tags, status filters |
-| Search | Titles, authors, tags, plus highlights, comments, note lines and session takeaways; results open the right page |
+| Library | Import PDFs (button or drag-drop), title/author from PDF metadata, add by arXiv ID or DOI, add by link without the PDF (BibTeX fill-in), tags with suggestions, status filters, No PDF yet list |
+| Papers without a PDF | `isLink(p)` (`!hasFile && !sample`): the reader shows a paper page (details, abstract, Open paper, Attach PDF) instead of pages; Notes and Details only; no session, status untouched |
+| Search | Titles, authors, tags, abstracts, plus highlights, comments, note lines and session takeaways; results open the right page |
 | Lifecycle | Inbox → Planned → Reading → Paused → Completed → Revisit. Opening a paper moves it to Reading. Reaching the last page prompts for Completed or Revisit |
 | Reader | PDF.js rendering with a text layer, lazy page rendering, zoom, page jump, bookmarks, resume at last page, links in the PDF with Back, Contents tab, collapsible sidebar and panel (`[` `]`), `j`/`k` or arrow keys to change page, `b` to bookmark |
 | Highlights | Select text → 4 colours with meanings (yellow key idea, green method/result, blue definition, pink question). Optional comment per highlight. Click a card to see it on the page, or a highlight on the page to open its card. Re-found by text when the PDF is replaced |

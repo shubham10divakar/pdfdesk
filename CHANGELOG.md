@@ -2,6 +2,12 @@
 
 All notable changes to PDFDesk. Versions follow [semantic versioning](https://semver.org/); dates are release dates.
 
+## Unreleased
+
+- **Add a paper by link, without the PDF.** For papers you find on Google Scholar or a publisher's site but can't get the PDF of: *Add by link* keeps the link, title, authors, venue, year, abstract, tags and your first notes. Paste the BibTeX from Scholar (*Cite → BibTeX*) and the details fill themselves in; an arXiv link or a DOI can be filled in from arXiv or Crossref (under `pdfdesk`, and arXiv brings the PDF). Opening the paper shows its details and abstract with **Open paper ↗** and **Attach PDF**; notes work as usual, and no reading session is recorded. A **No PDF yet** list in the sidebar collects them. Attach the PDF when you find it and it becomes a normal paper, with notes and tags kept.
+- **Tags suggest themselves.** Click into a tag box and your existing tags are listed, most used first; type a few letters to narrow them, then Enter, comma or a click adds one. A tag you don't have yet is offered as *New tag*. Backspace in the empty box removes the last tag. Works in Details and in Add by link.
+- **Abstract field** for every paper, in Details. The library search looks in abstracts too, and the Markdown notes in an export include the abstract and the paper's link.
+
 ## 1.0.0 (2026-11-03)
 
 First stable release. Everything since 0.2.2:

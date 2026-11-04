@@ -109,9 +109,10 @@ Every paper has a place in the reading lifecycle:
 
 - Opening a paper moves it to *Reading*. When you reach the last page, PDFDesk asks whether it's *Completed* or worth a *Revisit*.
 - **Import** by button or drag and drop. Title, authors and page count come from the PDF itself.
-- **Search everything** from the sidebar: titles, authors and tags, and inside your highlights, comments, notes and session takeaways. Each result opens the right page.
+- **Search everything** from the sidebar: titles, authors, tags and abstracts, and inside your highlights, comments, notes and session takeaways. Each result opens the right page.
 - **Add by arXiv ID or DOI:** paste `1706.03762` or a DOI, and the title, authors, year and venue are filled in. arXiv papers come with their PDF.
-- **Tags** in the sidebar, with counts, for one-click filtering.
+- **Add by link, without the PDF:** found a paper on Google Scholar but can't get the PDF? Save its link, abstract, tags and notes now (paste Scholar's BibTeX to fill in the details) and attach the PDF later. Such papers wait in a *No PDF yet* list.
+- **Tags** in the sidebar, with counts, for one-click filtering. When you tag a paper, your existing tags are suggested as you type.
 - See each paper's status, progress bar, pages read and when you last opened it.
 - Set a **target page and date** ("finish section 3 by Friday") and it shows up in *Up next*.
 

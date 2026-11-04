@@ -47,6 +47,12 @@ After the text layer, `drawLinks` asks PDF.js for the page's link annotations an
 ### Add by arXiv ID or DOI
 `addById` posts `{query, id}` to `/api/lookup`. `pdfdesk/lookup.py` parses the id (`parse_query`: arXiv new/old style, arXiv DOIs, abs/pdf links, DOIs, doi.org links), reads `export.arxiv.org/api/query` (Atom) or `api.crossref.org/works/<doi>` (JSON, HTML stripped, subtitle appended), and for arXiv downloads `arxiv.org/pdf/<id>` and saves it as `pdfs/<id>.pdf`. `fetch` refuses any other host (D-011). The app checks for an existing paper with the same arXiv id or DOI before looking anything up.
 
+### Add by link (papers without a PDF)
+`showAddLink` keeps a draft in `LINK` (`{id, tags, hasFile, arxiv, doi}`); its tag box is the shared tag picker with `kind = "draft"`. `parseBibtex` reads the BibTeX Google Scholar gives (brace/quote values, LaTeX accents, `and others` → et al., arXiv preprints → `arxiv`). Nothing is fetched from the pasted link itself (D-011): only arXiv links and DOIs can be filled in, through the same `/api/lookup` (the PDF is downloaded under the draft's id and deleted again if the form is cancelled). Duplicates are matched on arXiv id, DOI or the exact link. A paper with `!hasFile && !sample` (`isLink`) opens through `openLinkPaper`: `R.link` is set and `R.session` is null, so no session is logged; the panel drops the page tools.
+
+### Tag picker
+`tagEditor(tags, kind)` renders the tags plus a combobox input; `tagSuggest` lists the library's tags (exact, then prefix, then count, then A–Z), the paper's own excluded, plus *New tag* for unknown text. `tagList(kind)` maps `"paper"` to the open paper and `"draft"` to the Add by link form.
+
 ### Sessions
 A 1-second ticker adds to `R.session.active` only if the tab is visible and there was input in the last 3 minutes. `endSession(note)` writes a record if at least 1 minute passed, the page range changed, or a note was given. It runs on leaving the reader, opening another paper, "Log session", and `pagehide`.
 

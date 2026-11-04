@@ -415,8 +415,10 @@ const FEATURES = [
     "Every paper moves through Inbox, Planned, Reading, Paused, Completed and Revisit",
     "Opening a paper moves it to Reading; reaching the last page asks for Completed or Revisit",
     "Import with the button or drag and drop; title, authors and page count come from the PDF",
-    "Search titles, authors and tags, and inside highlights, notes and session takeaways; each result opens the right page",
+    "Search titles, authors, tags and abstracts, and inside highlights, notes and session takeaways; each result opens the right page",
     "Add a paper by arXiv ID or DOI: details filled in, arXiv PDFs downloaded",
+    "Add a paper by link when you can't get the PDF: paste Scholar's BibTeX for the details, keep the abstract, tags and notes, attach the PDF later",
+    "Tags suggest themselves as you type, most used first",
     "Set a target page and date; it shows up in Up next"]],
   ["Reader", [
     "Sharp PDF rendering with selectable text",

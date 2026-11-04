@@ -31,7 +31,8 @@ The same paper objects are stored in two places depending on the mode (architect
     }],
     "bookmarks": [5],
     "target": {"page": 13, "date": "2026-11-04"}, // or null
-    "arxiv": "1706.03762", "doi": "", "url": "https://arxiv.org/abs/1706.03762",  // set when added by arXiv ID or DOI
+    "arxiv": "1706.03762", "doi": "", "url": "https://arxiv.org/abs/1706.03762",  // set when added by arXiv ID, DOI or link
+    "abstract": "",                               // pasted or typed; a paper added by link often has only this and its url
     "addedAt": 0, "lastOpened": 0, "lastPage": 12, "maxPage": 12
   }],
   "ui": {"view":"home","filter":"all","tab":"notes","nmode":"preview","hlFilter":"all","zoom":1,"q":"",
