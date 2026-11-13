@@ -38,7 +38,8 @@ See decisions.md D-008. One package name and one command across both stacks.
 - [x] **0.2.2**: zoom scrolling fix (on PyPI)
 - [x] **1.0.0**: first stable release; everything in CHANGELOG.md's 1.0.0 entry (on PyPI)
 - [x] **1.1.0**: add by link without the PDF, tag suggestions, abstracts (on PyPI)
-- [x] **1.1.1**: last `pdfdesk` release. Ships the README/About wording from b0de801 and a notice that PDFDesk is now **StudyDesk** (`studydesk` on PyPI, https://github.com/shubham10divakar/studydesk). Development continues there; this repo is frozen.
+- [x] **1.1.1**: tagged, never uploaded. Ships the README/About wording from b0de801 and a notice that PDFDesk is now **StudyDesk** (`studydesk` on PyPI, https://github.com/shubham10divakar/studydesk). Development continues there; this repo is frozen.
+- [x] **1.1.2**: last `pdfdesk` release. README and PyPI page say PDFDesk is now StudyDesk, what it adds and how to move over (rename `~/PDFDesk` to `~/StudyDesk`); this repo is frozen
 - [ ] **2.x**: platform wheels carrying the Tauri binary (Windows x64, macOS x64 + arm64, Linux x64), built in CI; `pdfdesk` launches the app. Consider pytauri if the backend should be Python
 - [ ] 2.x first run: offer to import a 1.x export file (or read the 1.x library folder directly)
 - [ ] Optional native installers (`.msi`, `.dmg`) alongside pip

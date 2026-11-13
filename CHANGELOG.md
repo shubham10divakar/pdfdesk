@@ -2,6 +2,10 @@
 
 All notable changes to PDFDesk. Versions follow [semantic versioning](https://semver.org/); dates are release dates.
 
+## 1.1.2 (2026-11-13)
+
+- **README says clearly that PDFDesk is now [StudyDesk](https://pypi.org/project/studydesk/)**, what StudyDesk adds, and how to move over in three steps (install `studydesk`, rename `~/PDFDesk` to `~/StudyDesk`, run it). Corrects 1.1.1, which said StudyDesk would use `~/PDFDesk` by itself; it doesn't. Same app as 1.1.1, which was tagged but not uploaded to PyPI. This is the last release of `pdfdesk`.
+
 ## 1.1.1 (2026-11-13)
 
 - **PDFDesk is now StudyDesk.** This is the last release of `pdfdesk`. New versions ship as [`studydesk`](https://pypi.org/project/studydesk/) (`pip install studydesk && studydesk`), developed at https://github.com/shubham10divakar/studydesk. StudyDesk uses your existing `~/PDFDesk` library folder as it is.

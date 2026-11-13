@@ -1,6 +1,8 @@
 <div align="center">
 
-# PDFDesk
+# PDFDesk is now StudyDesk
+
+**📣 PDFDesk has been renamed [StudyDesk](https://pypi.org/project/studydesk/), with loads of new features. Install it with `pip install studydesk`.**
 
 ### Your reading desk for research papers.
 
@@ -13,17 +15,38 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/shubham10divakar/pdfdesk/blob/main/LICENSE)
 
 ```bash
-pip install pdfdesk && pdfdesk
+pip install studydesk && studydesk   # the new name; pdfdesk gets no more updates
 ```
 
 <img src="https://raw.githubusercontent.com/shubham10divakar/pdfdesk/main/docs/assets/overview.png" alt="PDFDesk overview: reading stats, continue reading, reading calendar, up next and revision queue" width="100%">
 
 </div>
 
-> [!IMPORTANT]
-> **PDFDesk is now StudyDesk.** The app is growing from a PDF reader into a desk for everything you study: links, PDFs, documents and notes. New versions ship as [`studydesk`](https://pypi.org/project/studydesk/), developed at [github.com/shubham10divakar/studydesk](https://github.com/shubham10divakar/studydesk). This is the last release of `pdfdesk`.
->
-> To switch: `pip install studydesk && studydesk`. Your library in `~/PDFDesk` is picked up as it is, nothing to export or move.
+## 📣 PDFDesk is now StudyDesk
+
+`pdfdesk` has been renamed **[`studydesk`](https://pypi.org/project/studydesk/)**, and it does a lot more than read PDFs now. **This is the last release of `pdfdesk`**: it gets no new features or fixes. Every new version ships as `studydesk`, developed at [github.com/shubham10divakar/studydesk](https://github.com/shubham10divakar/studydesk).
+
+```bash
+pip install studydesk && studydesk
+```
+
+### What StudyDesk adds
+- 🗓️ **Submissions tracker:** journals, special issues, book chapter calls and conferences, with deadlines (AoE too), APC and zero-APC dates, Scopus or not, and your own priority-ordered lists.
+- 🛠️ **Projects tracker:** a dated update log, next step, milestones, GitHub and other links, and a nudge when a project goes quiet.
+- ✍️ **My papers:** your own manuscripts, aimed at a 1st, 2nd and 3rd choice venue and followed to the decision.
+- ⏰ **Upcoming:** every deadline and milestone in one list, nearest first, also on the Overview.
+- 🖼️ **Images** on submissions and projects (paste a screenshot of a call or a flyer).
+- 📦 **Export and import carry everything**, trackers included.
+- Everything PDFDesk does: library, PDF reader, highlights, notes and your reading history.
+
+### Moving over takes a minute
+1. `pip uninstall pdfdesk` (optional), then `pip install studydesk`.
+2. Rename the `PDFDesk` folder in your home folder to `StudyDesk`. If you already started StudyDesk once, delete the new `StudyDesk` folder first (it holds only the example papers). Or leave everything where it is and start with `studydesk --data-dir ~/PDFDesk`.
+3. Run `studydesk`. Your papers, PDFs, highlights, notes and reading history are all there; nothing to export or import.
+
+PDFDesk export files import into StudyDesk as they are.
+
+*The rest of this page describes PDFDesk 1.1, as it was.*
 
 ---
 
@@ -212,7 +235,7 @@ PDFDesk is at **1.1**. Next up:
 
 - **Recolour instead of duplicate:** highlighting text that's already highlighted will offer to change its colour.
 - **Reference preview:** hover over a citation to read the reference without jumping.
-- **PDFDesk 2.0** as a native desktop app (Tauri + SQLite), installed the same way, with `pip install -U pdfdesk`.
+- The native desktop app (Tauri + SQLite) will ship as **StudyDesk 2.0**, with `pip install -U studydesk`. PDFDesk gets no more releases.
 - Later: links between papers, spaced revision, weekly reading reports, Zotero import.
 
 The full plan is in [docs/roadmap.md](https://github.com/shubham10divakar/pdfdesk/blob/main/docs/roadmap.md).
