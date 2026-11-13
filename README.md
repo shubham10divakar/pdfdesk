@@ -20,6 +20,11 @@ pip install pdfdesk && pdfdesk
 
 </div>
 
+> [!IMPORTANT]
+> **PDFDesk is now StudyDesk.** The app is growing from a PDF reader into a desk for everything you study: links, PDFs, documents and notes. New versions ship as [`studydesk`](https://pypi.org/project/studydesk/), developed at [github.com/shubham10divakar/studydesk](https://github.com/shubham10divakar/studydesk). This is the last release of `pdfdesk`.
+>
+> To switch: `pip install studydesk && studydesk`. Your library in `~/PDFDesk` is picked up as it is, nothing to export or move.
+
 ---
 
 ## New in 1.1

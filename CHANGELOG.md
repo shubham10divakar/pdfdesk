@@ -2,6 +2,11 @@
 
 All notable changes to PDFDesk. Versions follow [semantic versioning](https://semver.org/); dates are release dates.
 
+## 1.1.1 (2026-11-13)
+
+- **PDFDesk is now StudyDesk.** This is the last release of `pdfdesk`. New versions ship as [`studydesk`](https://pypi.org/project/studydesk/) (`pip install studydesk && studydesk`), developed at https://github.com/shubham10divakar/studydesk. StudyDesk uses your existing `~/PDFDesk` library folder as it is.
+- README and About page wording from after 1.1.0 (linking papers, sessions, export and shortcuts).
+
 ## 1.1.0 (2026-11-04)
 
 - **Add a paper by link, without the PDF.** For papers you find on Google Scholar or a publisher's site but can't get the PDF of: *Add by link* keeps the link, title, authors, venue, year, abstract, tags and your first notes. Paste the BibTeX from Scholar (*Cite → BibTeX*) and the details fill themselves in; an arXiv link or a DOI can be filled in from arXiv or Crossref (under `pdfdesk`, and arXiv brings the PDF). Opening the paper shows its details and abstract with **Open paper ↗** and **Attach PDF**; notes work as usual, and no reading session is recorded. A **No PDF yet** list in the sidebar collects them. Attach the PDF when you find it and it becomes a normal paper, with notes and tags kept.
